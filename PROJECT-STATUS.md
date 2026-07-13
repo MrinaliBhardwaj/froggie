@@ -13,6 +13,16 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
+**Phase 2 — The frog — ✅ complete.** A hand-drawn pixel frog sits on the hero
+lily pad, riding its bob. It's drawn procedurally from a pose (not sprite frames)
+so it animates continuously: slow breathing + throat, random single/double
+blinks, pupils that track the pointer when it's near, and an idle behaviour
+scheduler that cycles blink · look-around · croak · stretch · yawn · scratch ·
+wave on gentle random timers. Leave it alone ~24s and it dozes off; click it to
+wake it with a startled croak. Waving only triggers when the pointer's nearby.
+Code: `src/world/frog/` (`Frog.ts` = AI, `FrogPose.ts` = pose + `drawFrog`),
+plus a reusable `src/anim/Tween.ts`. After-eating reactions wait for bugs.
+
 **Phase 1 — Engine, camera, scene composition, environment — ✅ complete.**
 
 A full-window, layered night pond that is already alive when untouched:
@@ -32,13 +42,16 @@ Architecture is modular and documented in `DECISIONS.md`.
 
 ## Next up
 
-**Phase 2 — Pixel-art assets & frog animations.** The mascot frog on the hero
-lily pad (centre-low). Idle behaviours matter most: blink, look around, watch,
-scratch, croak, stretch, yawn, sleep, wave, sit. After-eating reactions come once
-bugs exist. Build reusable animation state helpers; keep frog AI in its own system.
+**Phase 3 — Bugs & interactions.** Clickable bugs flying/animating around the
+pond, each with its own movement (Null Pointer mosquito, Memory Leak dragonfly,
+Merge Conflict beetle, Syntax Beetle, 404 moth, Infinite Loop beetle). Click a
+bug → the frog tracks it, tongue-snaps, and eats it; the pond's `lushness` ticks
+up. Bugs are `SceneElement`s dropped into the `stage` layer next to the frog. The
+frog already exposes the hooks needed (`poke`, gaze); add an "eat/target" path
+and the after-eat reactions (satisfied blink, lick, little hop).
 
-Then: Phase 3 bugs + interactions · Phase 4 water/particles/lighting/ambience ·
-Phase 5 progression, hidden interactions, polish.
+Then: Phase 4 water/particles/lighting/ambience · Phase 5 progression, hidden
+interactions, polish.
 
 ## Handy pointers
 

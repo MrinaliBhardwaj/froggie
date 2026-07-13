@@ -37,6 +37,11 @@ export class LilyPads implements SceneElement {
     this.pads.length = 0;
   }
 
+  /** The big centre-low pad the frog sits on. Undefined until first built. */
+  heroPad(): Pad | undefined {
+    return this.pads.find((p) => p.hero);
+  }
+
   private build(): void {
     const { w, h, waterlineY } = this.layout;
     const waterH = h - waterlineY;

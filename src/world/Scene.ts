@@ -20,6 +20,7 @@ import { Flowers } from "./environment/Flowers";
 import { Lantern } from "./environment/Lantern";
 import { Foreground } from "./environment/Foreground";
 import { Vignette } from "./environment/Vignette";
+import { Frog } from "./frog/Frog";
 import { Cursor } from "../ui/Cursor";
 
 const WATER_PARALLAX = 0.5;
@@ -32,6 +33,7 @@ export class Scene {
   private readonly layers: Layer[] = [];
   private readonly layout: PondLayout = makePondLayout();
   private readonly water: Water;
+  private readonly frog: Frog;
 
   constructor(world: World) {
     computePondLayout(this.layout, world.width, world.height);
@@ -77,10 +79,11 @@ export class Scene {
 
     props.add(new Lantern(this.layout));
 
-    // The stage: everything resting on the near water. The frog and bugs join
-    // this layer in the next phases.
-    stage.add(new LilyPads(this.layout, rng, 7));
+    // The stage: everything resting on the near water. Bugs join this layer in
+    // the next phase.
+    const lily = stage.add(new LilyPads(this.layout, rng, 7));
     stage.add(new Flowers(this.layout, rng, 5));
+    this.frog = stage.add(new Frog(this.layout, rng, lily));
     stage.add(
       new Reeds(this.layout, rng, {
         band: [0.0, 0.13],
@@ -119,8 +122,12 @@ export class Scene {
   }
 
   update(world: World): void {
-    // Touching the water sends out a ripple — the first tiny bit of magic.
+    // Route taps: on the frog → poke it; on the water → send out a ripple.
     for (const c of world.input.takeClicks()) {
+      if (this.frog.hitTest(c.x + world.camera.x, c.y + world.camera.y)) {
+        this.frog.poke();
+        continue;
+      }
       const wx = c.x + world.camera.x * WATER_PARALLAX;
       const wy = c.y + world.camera.y * WATER_PARALLAX;
       if (wy > this.layout.waterlineY) this.water.spawnRipple(wx, wy, 0.85);

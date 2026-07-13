@@ -44,6 +44,25 @@ inherits them. Newest at the bottom.
   flicker, drifting petals, ambient ripples — all on independent, non-repeating
   phases.
 
+## The frog (Phase 2)
+
+- **Procedural, not sprite frames.** The frog is drawn from a ~13-number pose
+  (`FrogPose`) every frame rather than a spritesheet. A rich idle vocabulary
+  (blink, look, croak, stretch, yawn, scratch, wave, sleep) is far cheaper to get
+  smooth and non-repeating from continuous values than from hand-drawn frames,
+  and it still snaps to the pixel grid so it reads as pixel art.
+- **Behaviour = its own AI, decoupled from drawing.** `Frog.ts` holds all state
+  and a weighted behaviour scheduler; `FrogPose.ts` only knows how to paint a
+  pose. Behaviours relax back to a rest pose via `damp`, so they blend instead of
+  snapping. One-shot scripted actions use a reusable `anim/Tween.ts`.
+- **It rides the hero pad.** The frog reads `LilyPads.heroPad()` and bobs with it,
+  rather than hard-coding a position — so it stays seated if the pad layout
+  changes. Falls back to a layout-derived spot on the first frame before pads
+  build.
+- **Alive at rest.** Always-on breathing + throat, pointer-tracking pupils, random
+  single/double blinks, and dozing off after ~24s idle (woken by a poke) — the
+  frog is never a static idle loop.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is
