@@ -48,8 +48,8 @@ export class Foreground implements SceneElement {
     const { w, h } = this.layout;
     this.leaves = [];
     // Top corners get heavy foliage; one soft clump lower-right.
-    this.clump(-6, -6, 5, w);
-    this.clump(w + 6, -8, 4, w);
+    this.clump(-30, -25, 5, w);
+    this.clump(w + 30, -28, 4, w);
     this.clump(w + 10, h * 0.78, 3, w);
 
     if (this.petals.length === 0) {

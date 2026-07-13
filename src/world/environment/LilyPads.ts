@@ -46,7 +46,7 @@ export class LilyPads implements SceneElement {
     this.pads.push({
       x: Math.round(w * 0.46),
       y: Math.round(waterlineY + waterH * 0.72),
-      rx: Math.round(Math.min(w * 0.09, 22)),
+      rx: Math.round(Math.min(w * 0.12, 30)),
       ry: 0,
       period: this.rng.range(4.5, 6),
       phase: this.rng.next(),
@@ -57,7 +57,7 @@ export class LilyPads implements SceneElement {
     for (let i = 0; i < this.count; i++) {
       const depth = this.rng.next(); // 0 far → 1 near
       const y = waterlineY + waterH * (0.12 + depth * 0.8);
-      const rx = (5 + depth * 12) * this.rng.range(0.8, 1.2);
+      const rx = (7 + depth * 17) * this.rng.range(0.8, 1.2);
       this.pads.push({
         x: Math.round(this.rng.range(w * 0.08, w * 0.92)),
         y: Math.round(y),

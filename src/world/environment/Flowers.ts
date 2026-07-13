@@ -45,7 +45,7 @@ export class Flowers implements SceneElement {
       this.blooms.push({
         x: Math.round(this.rng.range(w * 0.12, w * 0.88)),
         y: Math.round(waterlineY + waterH * (0.3 + depth * 0.6)),
-        size: lerp(3, 6, depth) * this.rng.range(0.85, 1.15),
+        size: lerp(5, 9, depth) * this.rng.range(0.85, 1.15),
         petals: this.rng.chance(0.5) ? 6 : 5,
         period: this.rng.range(4, 6.5),
         phase: this.rng.next(),
