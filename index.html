@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Lotus Pond</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0f1e; }
+      #app { position: fixed; inset: 0; }
+
+      /* The game canvas fills the window; the browser upscales the tiny
+         backing store with nearest-neighbour so every pixel stays crisp. */
+      #stage {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        cursor: none;
+      }
+
+      /* Quiet loading state, faded out once the first frame paints. */
+      #boot {
+        position: fixed; inset: 0;
+        display: grid; place-items: center;
+        background: #0b0f1e;
+        color: #6b7a9c;
+        font: 12px/1.6 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        letter-spacing: 0.14em;
+        text-transform: lowercase;
+        transition: opacity 900ms ease;
+        z-index: 10;
+      }
+      #boot.hidden { opacity: 0; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="stage"></canvas>
+    </div>
+    <div id="boot">· lotus pond ·</div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
