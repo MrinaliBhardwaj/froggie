@@ -295,9 +295,10 @@ export class Frog implements SceneElement {
 
       case "scratch": {
         const r = hump(k);
-        p.armR = smoothstep(0, 1, r) + (r > 0.3 ? Math.sin(t * 34) * 0.08 : 0);
-        p.lean = 0.14 * r;
-        p.lid = Math.max(p.lid, 0.2 * r);
+        p.armR = 0.78 * smoothstep(0, 1, r); // hand up by the cheek, not overhead
+        p.armWave = r > 0.25 ? Math.sin(t * 26) * 0.3 : 0; // quick side-to-side scratch
+        p.lean = 0.2 * r;
+        p.lid = Math.max(p.lid, 0.25 * r);
         break;
       }
 

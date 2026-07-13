@@ -4,7 +4,7 @@
 // reads a pose and paints it; the AI in `Frog.ts` is the only thing that writes
 // one. Everything snaps to the virtual-pixel grid so it stays crisp pixel art.
 
-import { fillEllipse, fillRect, px } from "../../render/pixels";
+import { fillEllipse, fillRect, px, disc } from "../../render/pixels";
 import { withAlpha, mix } from "../../render/color";
 import { clamp01, lerp } from "../../anim/math";
 import { C } from "../../config/theme";
@@ -56,22 +56,98 @@ export const restPose = (): FrogPose => ({
 const EYE_BASE = mix(C.frogEyeHi, C.frogBody, 0.24); // pale, not stark white
 const SHADOW = "#0a1512";
 
-/** A short, thick limb segment from shoulder to hand. */
-const limb = (
+/** A tapered rounded segment (upper arm, forearm or finger) drawn as a run of
+ *  discs so limbs read as soft, chunky pixel shapes rather than thin sticks. */
+const capsule = (
   ctx: CanvasRenderingContext2D,
-  x0: number,
-  y0: number,
-  x1: number,
-  y1: number,
-  color: string,
-  thick: number
+  ax: number,
+  ay: number,
+  bx: number,
+  by: number,
+  r0: number,
+  r1: number,
+  color: string
 ): void => {
-  const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0)));
-  const h = thick / 2;
+  const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay)));
   for (let i = 0; i <= n; i++) {
     const t = i / n;
-    fillRect(ctx, x0 + (x1 - x0) * t - h, y0 + (y1 - y0) * t - h, thick, thick, color);
+    disc(ctx, Math.round(ax + (bx - ax) * t), Math.round(ay + (by - ay) * t), Math.max(0.6, r0 + (r1 - r0) * t), color);
   }
+};
+
+interface ArmGeom {
+  cx: number;
+  cy: number;
+  bodyCx: number;
+  bodyCy: number;
+  bodyW: number;
+  bodyH: number;
+  bw: number;
+  bh: number;
+}
+
+/**
+ * One articulated arm: shoulder → elbow → hand with three splayed fingers.
+ * `raise` blends between a hand resting on the pad (0) and an arm lifted up-and-
+ * out beside the head (1); `wave` swings a raised hand sideways. Drawn in two
+ * passes (shade underlay, then body) so it keeps a clean outline over the body.
+ */
+const drawArm = (
+  ctx: CanvasRenderingContext2D,
+  side: number,
+  raise: number,
+  wave: number,
+  g: ArmGeom
+): void => {
+  const { cx, cy, bodyCx, bodyCy, bodyW, bodyH, bw, bh } = g;
+  const sx = bodyCx + side * bodyW * 0.8; // shoulder
+  const sy = bodyCy + bodyH * 0.02;
+
+  // Resting: arm hangs to a hand on the pad in front.
+  const restEx = sx + side * bw * 0.16;
+  const restEy = sy + bh * 0.5;
+  const restHx = cx + side * bw * 0.5;
+  const restHy = cy - bh * 0.04;
+  // Raised: elbow out and up, hand high and clear of the head (+ wave swing).
+  const upEx = sx + side * bw * 0.72;
+  const upEy = sy - bh * 0.28;
+  const upHx = sx + side * bw * 0.5 + wave * bw * 0.55;
+  const upHy = sy - bh * 1.15;
+
+  const ex = lerp(restEx, upEx, raise);
+  const ey = lerp(restEy, upEy, raise);
+  const hx = lerp(restHx, upHx, raise);
+  const hy = lerp(restHy, upHy, raise);
+
+  // Wrist direction, for fanning the fingers.
+  let dx = hx - ex;
+  let dy = hy - ey;
+  const dl = Math.hypot(dx, dy) || 1;
+  dx /= dl;
+  dy /= dl;
+  const fingers = [-0.6, 0, 0.6];
+  const fLen = bw * 0.34;
+  const palmR = bw * 0.22;
+
+  // Pass 1: shade underlay (slightly fatter) for a uniform outline.
+  capsule(ctx, sx, sy, ex, ey, 3, 2.5, C.frogBodyShade);
+  capsule(ctx, ex, ey, hx, hy, 2.5, 2, C.frogBodyShade);
+  disc(ctx, Math.round(hx), Math.round(hy), palmR + 0.8, C.frogBodyShade);
+  for (const a of fingers) {
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    capsule(ctx, hx, hy, hx + (dx * ca - dy * sa) * fLen, hy + (dx * sa + dy * ca) * fLen, 1.9, 1.1, C.frogBodyShade);
+  }
+  // Pass 2: body fill.
+  capsule(ctx, sx, sy, ex, ey, 2.3, 1.9, C.frogBody);
+  capsule(ctx, ex, ey, hx, hy, 1.9, 1.5, C.frogBody);
+  for (const a of fingers) {
+    const ca = Math.cos(a);
+    const sa = Math.sin(a);
+    capsule(ctx, hx, hy, hx + (dx * ca - dy * sa) * fLen, hy + (dx * sa + dy * ca) * fLen, 1.3, 0.7, C.frogBody);
+  }
+  disc(ctx, Math.round(hx), Math.round(hy), palmR, C.frogBody);
+  fillEllipse(ctx, hx - 1, hy - 1, palmR * 0.5, palmR * 0.4, C.frogBodyLit);
 };
 
 /**
@@ -178,19 +254,7 @@ export function drawFrog(
   }
 
   // ── Arms / hands last, so a raised hand reads in front of the face ─────
-  for (const side of [-1, 1]) {
-    const raise = side > 0 ? p.armR : p.armL;
-    const wave = side > 0 ? p.armWave : 0;
-    const shx = bodyCx + side * bodyW * 0.66;
-    const shy = bodyCy + bodyH * 0.2;
-    const restHx = cx + side * bw * 0.42;
-    const restHy = seatY - bh * 0.12;
-    const upHx = shx + side * bw * 0.05 + wave * bw * 0.6;
-    const upHy = shy - bh * 1.15;
-    const hx = lerp(restHx, upHx, raise);
-    const hy = lerp(restHy, upHy, raise);
-    if (raise > 0.12) limb(ctx, shx, shy, hx, hy, C.frogBodyShade, 2);
-    fillEllipse(ctx, hx, hy, bw * 0.2, bw * 0.18, C.frogBody);
-    fillEllipse(ctx, hx - 1, hy - 1, bw * 0.12, bw * 0.1, C.frogBodyLit);
-  }
+  const geom: ArmGeom = { cx, cy: seatY, bodyCx, bodyCy, bodyW, bodyH, bw, bh };
+  drawArm(ctx, -1, p.armL, 0, geom);
+  drawArm(ctx, 1, p.armR, p.armWave, geom);
 }
