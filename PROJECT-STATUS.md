@@ -13,16 +13,19 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
-**Phase 5 — Progression, hidden interactions & warmth — ✅ complete (audio
-pending).** The pond now rewards attention. A golden `Warmth` wash grows with
+**Phase 5 — Progression, hidden interactions, warmth & audio — ✅ complete. The
+game is done.** The pond now rewards attention. A golden `Warmth` wash grows with
 `lushness` (the colour-richness half of progression, alongside the fireflies).
 Hidden interactions: double-click the frog → a big croak; click the lantern → it
 flares; tap the water 3× quickly → a fish jumps and splashes; leave it idle → it
 dozes with floating "z"s; linger ~5 min → a shooting star; and every so often a
-butterfly flutters in, perches on the frog's snout, and crosses its eyes. Code:
-`src/world/critters/` (`Fish`, `Butterfly`), `src/world/fx/Warmth.ts`, plus new
-frog hooks (`bigCroak`, `crossEye`, `headPoint`, nap Zzz) and a shooting star in
-`Stars`. **Still to do: procedural audio ambience + a final polish pass.**
+butterfly flutters in, perches on the frog's snout, and crosses its eyes.
+**Audio** is fully synthesised (no assets): a looping ambient bed — water, night
+wind, crickets, distant frogs, lantern hum — plus event sounds (splash, croak,
+gulp, lantern chime). It boots on the first click; press **m** to mute. Code:
+`src/audio/Ambience.ts`, `src/world/critters/`, `src/world/fx/Warmth.ts`, frog
+hooks, and the shooting star in `Stars`. Production build: **~58 KB (20 KB
+gzipped)**.
 
 **Phase 4 — Water, particles, lighting & ambience — ✅ complete.** Catches now
 feel alive: a warm sparkle puff where the tongue snaps a bug, a heart that floats
@@ -74,17 +77,12 @@ Architecture is modular and documented in `DECISIONS.md`.
 
 ## Next up
 
-**Phase 5 — Progression, hidden interactions, audio, polish (final).**
-- **Progression curve.** `lushness` already blooms lotuses + multiplies fireflies;
-  extend it to colour richness / warmth and maybe a gentle bug-variety ramp. Keep
-  it a slow, unpressured climb — no meters shown.
-- **Hidden interactions.** double-click frog → big croak; click lantern → brighten;
-  idle ~2min → nap; stay ~5min → shooting star; butterfly lands on frog →
-  cross-eyed; click water repeatedly → a fish jumps.
-- **Audio ambience only** (no music): water, wind, frogs, crickets, lantern hum,
-  fireflies, splashes, birds — layered, looping, low.
-- **Polish pass:** perf check on weak hardware, palette/vignette warmth with
-  lushness, any last-mile art tweaks.
+**All five phases are complete — the game is finished.** Remaining work is
+optional refinement, at your direction:
+- Art/feel tuning (frog proportions, bug readability, palette warmth curve).
+- More hidden interactions or bug kinds if you want them.
+- A tiny mute/volume affordance on screen (currently mute is the "m" key).
+- Deploy (it's a static Vite build — `npm run build` → `dist/`).
 
 ## Handy pointers
 

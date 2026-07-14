@@ -27,6 +27,7 @@ import { Particles } from "./fx/Particles";
 import { Warmth } from "./fx/Warmth";
 import { Fish } from "./critters/Fish";
 import { Butterfly } from "./critters/Butterfly";
+import { ambience } from "../audio/Ambience";
 import { Cursor } from "../ui/Cursor";
 
 const PROPS_PARALLAX = 0.7;
@@ -114,9 +115,15 @@ export class Scene {
     // particle pool and the water, so the frog knows nothing about either.
     const fx: Effects = {
       sparkle: (x, y, n) => this.particles.sparkle(x, y, n),
-      heart: (x, y) => this.particles.heart(x, y),
+      heart: (x, y) => {
+        this.particles.heart(x, y);
+        ambience.eat(); // the soft gulp of a catch
+      },
       ripple: (x, y, s) => this.water.spawnRipple(x, y, s),
     };
+
+    // Boot the soundscape on the first user gesture (browsers require it).
+    ambience.installUnlock();
 
     // The stage: everything resting on the near water. Bugs fly just above it in
     // their own layer; the frog reaches into it to catch them.
@@ -178,14 +185,20 @@ export class Scene {
         continue;
       }
       if (this.frog.hitTest(sx, sy)) {
-        if (c.sincePrev <= DOUBLE_CLICK_MS) this.frog.bigCroak();
-        else this.frog.poke();
+        if (c.sincePrev <= DOUBLE_CLICK_MS) {
+          this.frog.bigCroak();
+          ambience.croak(true);
+        } else {
+          this.frog.poke();
+          ambience.croak(false);
+        }
         continue;
       }
       const px = c.x + world.camera.x * PROPS_PARALLAX;
       const py = c.y + world.camera.y * PROPS_PARALLAX;
       if (this.lantern.hitTest(px, py)) {
         this.lantern.brighten();
+        ambience.chime();
         continue;
       }
       const wx = c.x + world.camera.x * WATER_PARALLAX;
@@ -198,6 +211,9 @@ export class Scene {
         if (this.waterTaps >= 3) {
           this.fish.jump(wx, wy);
           this.waterTaps = 0;
+          ambience.splash(1);
+        } else {
+          ambience.splash(0.4);
         }
       }
     }

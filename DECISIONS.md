@@ -119,6 +119,22 @@ inherits them. Newest at the bottom.
   the nap/Zzz is actually seen in a short sitting; the shooting star keeps the
   brief's ~5-min linger as a genuine easter egg.
 
+## Audio (Phase 5)
+
+- **Synthesised, not sampled.** All sound is generated at runtime with the Web
+  Audio API — keeping the "zero assets, zero dependencies" rule. A brown-noise
+  buffer feeds filtered water/wind; oscillators make the hum, crickets, frogs,
+  and event blips.
+- **No music, only ambience** (per the brief). A continuous bed runs autonomously
+  (needs no game events); a handful of event sounds (splash, croak, gulp, chime)
+  hook the Scene's *existing* interaction points, so the frog stays audio-agnostic.
+- **Starts on a gesture, fails silent.** Browsers block audio until a user
+  interacts, so `installUnlock` boots the graph on the first click/key/touch.
+  Every call is try-wrapped — audio can never throw into the render loop, and if
+  Web Audio is absent it all no-ops. Mute is the "m" key.
+- **One shared instance.** `ambience` is a module singleton — the pond has one
+  soundscape; no plumbing through Game/World.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is
