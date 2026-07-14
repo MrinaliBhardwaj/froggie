@@ -410,7 +410,7 @@ export class Frog implements SceneElement {
           if (bug) bug.alive = false;
           this.catchBug = null;
           world.progress.bugsResolved++;
-          world.progress.lushness = clamp01(world.progress.lushness + 0.035);
+          world.progress.lushness = clamp01(world.progress.lushness + 0.04);
           const mo = this.mouthPoint(); // a heart floats up as it gulps
           this.fx.heart(mo.x, mo.y - this.bw * 0.6);
           this.fx.sparkle(mo.x, mo.y, 3);

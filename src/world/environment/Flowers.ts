@@ -21,7 +21,14 @@ interface Bloom {
   phase: number;
   white: boolean;
   rot: number;
+  /** Lushness at which this bloom appears. */
+  threshold: number;
+  /** Eased 0→1 reveal scale. */
+  grow: number;
 }
+
+// Lotuses open on the water from the start; the rest bloom as the pond flourishes.
+const STARTER_BLOOMS = 2;
 
 export class Flowers implements SceneElement {
   private blooms: Bloom[] = [];
@@ -36,12 +43,14 @@ export class Flowers implements SceneElement {
     this.blooms = [];
   }
 
-  private build(): void {
+  private build(lushness: number): void {
     const { w, h, waterlineY } = this.layout;
     const waterH = h - waterlineY;
     this.blooms = [];
+    const ramp = Math.max(1, this.count - STARTER_BLOOMS - 1);
     for (let i = 0; i < this.count; i++) {
       const depth = this.rng.range(0.3, 1);
+      const threshold = i < STARTER_BLOOMS ? 0 : lerp(0.4, 1, (i - STARTER_BLOOMS) / ramp);
       this.blooms.push({
         x: Math.round(this.rng.range(w * 0.12, w * 0.88)),
         y: Math.round(waterlineY + waterH * (0.3 + depth * 0.6)),
@@ -51,42 +60,50 @@ export class Flowers implements SceneElement {
         phase: this.rng.next(),
         white: this.rng.chance(0.3),
         rot: this.rng.range(0, TAU),
+        threshold,
+        grow: lushness >= threshold ? 1 : 0,
       });
     }
     this.blooms.sort((a, b) => a.y - b.y);
   }
 
   render(world: World): void {
-    if (this.blooms.length === 0) this.build();
-    const { ctx, t } = world;
-    const open = lerp(0.55, 1, world.progress.lushness);
+    const lush = world.progress.lushness;
+    if (this.blooms.length === 0) this.build(lush);
+    const { ctx, t, dt } = world;
+    const open = lerp(0.55, 1, lush);
 
     for (const b of this.blooms) {
+      const target = lush >= b.threshold ? 1 : 0;
+      b.grow += (target - b.grow) * Math.min(1, dt * 3.5);
+      if (b.grow < 0.02) continue;
+
+      const size = b.size * b.grow; // the whole bloom scales in as it appears
       const dy = bob(t, b.period, 0.9, b.phase);
       const cx = b.x;
       const cy = Math.round(b.y + dy);
       const petalCol = b.white ? C.lotusWhite : C.lotusPink;
       const petalLit = b.white ? C.lotusWhite : C.lotusPinkLit;
       const petalDeep = b.white ? C.lotusWhiteShade : C.lotusPinkDeep;
-      const ringR = b.size * open;
+      const ringR = size * open;
 
       // Outer petal ring.
       for (let k = 0; k < b.petals; k++) {
         const a = b.rot + (k / b.petals) * TAU;
         const pxp = cx + Math.cos(a) * ringR;
         const pyp = cy + Math.sin(a) * ringR * 0.5; // flattened, top-down
-        fillEllipse(ctx, Math.round(pxp), Math.round(pyp), Math.max(1, b.size * 0.5), Math.max(1, b.size * 0.34), petalDeep);
-        fillEllipse(ctx, Math.round(pxp), Math.round(pyp - 0.5), Math.max(1, b.size * 0.36), Math.max(1, b.size * 0.26), petalCol);
+        fillEllipse(ctx, Math.round(pxp), Math.round(pyp), Math.max(1, size * 0.5), Math.max(1, size * 0.34), petalDeep);
+        fillEllipse(ctx, Math.round(pxp), Math.round(pyp - 0.5), Math.max(1, size * 0.36), Math.max(1, size * 0.26), petalCol);
       }
       // Inner petal ring, offset half a step.
       for (let k = 0; k < b.petals; k++) {
         const a = b.rot + ((k + 0.5) / b.petals) * TAU;
         const pxp = cx + Math.cos(a) * ringR * 0.5;
         const pyp = cy + Math.sin(a) * ringR * 0.28;
-        fillEllipse(ctx, Math.round(pxp), Math.round(pyp), Math.max(1, b.size * 0.32), Math.max(1, b.size * 0.24), petalLit);
+        fillEllipse(ctx, Math.round(pxp), Math.round(pyp), Math.max(1, size * 0.32), Math.max(1, size * 0.24), petalLit);
       }
       // Warm core.
-      disc(ctx, cx, cy, Math.max(1, Math.round(b.size * 0.3)), C.lotusCore);
+      disc(ctx, cx, cy, Math.max(1, Math.round(size * 0.3)), C.lotusCore);
     }
   }
 }
