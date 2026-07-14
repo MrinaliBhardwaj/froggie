@@ -102,6 +102,23 @@ inherits them. Newest at the bottom.
 - **Cheap by construction.** Everything is alpha/transform fades on the pixel grid;
   no blur, no per-frame allocation in the hot path.
 
+## Progression & hidden interactions (Phase 5)
+
+- **Progression is felt, never shown.** No meters or numbers. `lushness` drives
+  three things at once — lotus bloom (Phase 1/3), firefly count (Phase 4), and now
+  a warm colour wash (`Warmth`). The pond simply *looks* more alive the longer you
+  play.
+- **Hidden interactions reuse existing seams.** The frog already exposed
+  `poke`/`catch`; Phase 5 adds `bigCroak`, `crossEye`, `headPoint`, and a `sleeping`
+  flag. New critters (`Fish`, `Butterfly`) are plain `SceneElement`s in a `critters`
+  layer; the Scene routes taps to them. The butterfly talks to the frog through a
+  tiny `Perchable` interface — same decoupling pattern as `Catchable`/`Effects`.
+- **Reward lingering, don't gate it.** Double-click, rapid water taps, idle-doze,
+  and the ~5-min shooting star are all discoverable surprises, not required steps.
+- **Frog timers stay demo-friendly.** The doze fires at ~24s idle (not 2 min) so
+  the nap/Zzz is actually seen in a short sitting; the shooting star keeps the
+  brief's ~5-min linger as a genuine easter egg.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is

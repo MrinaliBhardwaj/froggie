@@ -24,7 +24,13 @@ import { Frog, type Effects } from "./frog/Frog";
 import { Bugs } from "./bugs/Bugs";
 import { Fireflies } from "./fx/Fireflies";
 import { Particles } from "./fx/Particles";
+import { Warmth } from "./fx/Warmth";
+import { Fish } from "./critters/Fish";
+import { Butterfly } from "./critters/Butterfly";
 import { Cursor } from "../ui/Cursor";
+
+const PROPS_PARALLAX = 0.7;
+const DOUBLE_CLICK_MS = 320;
 
 const WATER_PARALLAX = 0.5;
 
@@ -39,6 +45,12 @@ export class Scene {
   private readonly frog: Frog;
   private readonly bugs: Bugs;
   private readonly particles: Particles;
+  private readonly lantern: Lantern;
+  private readonly fish: Fish;
+
+  // Rapid-water-tap tracking → a fish jumps.
+  private waterTaps = 0;
+  private lastTapAt = -Infinity;
 
   constructor(world: World) {
     computePondLayout(this.layout, world.width, world.height);
@@ -61,6 +73,7 @@ export class Scene {
     const fireflies = mk("fireflies", 0.85);
     const stage = mk("stage", 1.0);
     const bugsLayer = mk("bugs", 1.0);
+    const critters = mk("critters", 1.0);
     const fxLayer = mk("fx", 1.0);
     const foreground = mk("foreground", 1.7);
     const overlay = mk("overlay", 0);
@@ -85,11 +98,14 @@ export class Scene {
 
     this.water = water.add(new Water(this.layout, rng));
 
-    props.add(new Lantern(this.layout));
+    this.lantern = props.add(new Lantern(this.layout));
 
     // Fireflies drift in the mid-depth, behind the frog; more of them light up as
     // the pond flourishes.
     fireflies.add(new Fireflies(this.layout, rng));
+
+    // A fish that jumps when the water is tapped repeatedly (splashes ripple back).
+    this.fish = critters.add(new Fish(rng, (x, y, s) => this.water.spawnRipple(x, y, s)));
 
     // Catch flourishes (sparkles + hearts) live in front of the frog and bugs.
     this.particles = fxLayer.add(new Particles(rng));
@@ -108,6 +124,9 @@ export class Scene {
     stage.add(new Flowers(this.layout, rng, 5));
     this.bugs = bugsLayer.add(new Bugs(this.layout, rng));
     this.frog = stage.add(new Frog(this.layout, rng, lily, this.bugs, fx));
+
+    // The butterfly perches on the frog, so it needs the frog to exist first.
+    critters.add(new Butterfly(this.layout, rng, this.frog));
     stage.add(
       new Reeds(this.layout, rng, {
         band: [0.0, 0.13],
@@ -131,6 +150,7 @@ export class Scene {
 
     foreground.add(new Foreground(this.layout, rng));
 
+    overlay.add(new Warmth()); // warm wash grows with lushness, under the vignette
     overlay.add(new Vignette());
     overlay.add(new Cursor());
   }
@@ -146,23 +166,40 @@ export class Scene {
   }
 
   update(world: World): void {
-    // Route taps: on a bug → the frog catches it; on the frog → poke it; on the
-    // water → send out a ripple.
+    // Route taps, most specific first: bug → catch, frog → poke (double-tap →
+    // big croak), lantern → brighten, water → ripple (repeated taps → fish jump).
     for (const c of world.input.takeClicks()) {
       const sx = c.x + world.camera.x; // stage/bug space (parallax 1.0)
       const sy = c.y + world.camera.y;
+
       const bug = this.bugs.pick(sx, sy);
       if (bug) {
         this.frog.catch(bug);
         continue;
       }
       if (this.frog.hitTest(sx, sy)) {
-        this.frog.poke();
+        if (c.sincePrev <= DOUBLE_CLICK_MS) this.frog.bigCroak();
+        else this.frog.poke();
+        continue;
+      }
+      const px = c.x + world.camera.x * PROPS_PARALLAX;
+      const py = c.y + world.camera.y * PROPS_PARALLAX;
+      if (this.lantern.hitTest(px, py)) {
+        this.lantern.brighten();
         continue;
       }
       const wx = c.x + world.camera.x * WATER_PARALLAX;
       const wy = c.y + world.camera.y * WATER_PARALLAX;
-      if (wy > this.layout.waterlineY) this.water.spawnRipple(wx, wy, 0.85);
+      if (wy > this.layout.waterlineY) {
+        this.water.spawnRipple(wx, wy, 0.85);
+        // Repeated quick taps in the water coax a fish up.
+        this.waterTaps = world.t - this.lastTapAt < 1.2 ? this.waterTaps + 1 : 1;
+        this.lastTapAt = world.t;
+        if (this.waterTaps >= 3) {
+          this.fish.jump(wx, wy);
+          this.waterTaps = 0;
+        }
+      }
     }
 
     for (const layer of this.layers) layer.update(world);

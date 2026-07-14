@@ -18,6 +18,9 @@ import { clamp, clamp01, lerp, smoothstep, damp } from "../../anim/math";
 import { linear } from "../../anim/easing";
 import { Tween } from "../../anim/Tween";
 import { restPose, drawFrog, type FrogPose } from "./FrogPose";
+import { fillRect } from "../../render/pixels";
+import { withAlpha } from "../../render/color";
+import { C } from "../../config/theme";
 
 /** What the frog needs from anything it can eat. `Bug` matches structurally. */
 export interface Catchable {
@@ -106,6 +109,10 @@ export class Frog implements SceneElement {
   private catchTX = 0; // contact point captured at tongue impact
   private catchTY = 0;
 
+  // Phase-5 flourishes.
+  private croakBig = false; // this croak is a double-click "big" croak
+  private crossT = 0; // seconds left cross-eyed (a butterfly is perched)
+
   constructor(
     private readonly layout: PondLayout,
     private readonly rng: Random,
@@ -157,6 +164,34 @@ export class Frog implements SceneElement {
     this.catchBug = bug;
     this.catchPhase = "aim";
     this.catchT = 0;
+  }
+
+  /** Double-tap: a full-bodied croak with a bigger hop and stronger ripples. */
+  bigCroak(): void {
+    if (this.catchPhase) return;
+    this.wake();
+    this.pose.lid = 0;
+    this.croakBig = true;
+    this.start("croak");
+    this.pose.bounce = this.bw * 0.7;
+    this.fx.ripple(this.ax, this.ay, 1);
+    this.fx.ripple(this.ax, this.ay + this.bw * 0.4, 0.7);
+  }
+
+  /** A butterfly has perched on the frog's snout — go cross-eyed for a while. */
+  crossEye(seconds: number): void {
+    this.wake();
+    this.crossT = Math.max(this.crossT, seconds);
+  }
+
+  /** True while dozing — the Scene draws floating "z"s. */
+  get sleeping(): boolean {
+    return this.asleep;
+  }
+
+  /** Top-of-head point in stage space (a butterfly's landing spot). */
+  headPoint(): { x: number; y: number } {
+    return { x: this.ax, y: this.ay - this.bw * 1.55 };
   }
 
   // ── Simulation ──────────────────────────────────────────────────────────
@@ -238,6 +273,14 @@ export class Frog implements SceneElement {
     this.pose.eyeX = damp(this.pose.eyeX, this.lookX, 0.0009, dt);
     this.pose.eyeY = damp(this.pose.eyeY, this.lookY, 0.0009, dt);
     if (this.cursorNear && !this.asleep) this.pose.smile = Math.max(this.pose.smile, 0.5);
+
+    // A perched butterfly crosses the eyes and keeps the frog awake.
+    if (this.crossT > 0) {
+      this.crossT -= dt;
+      this.pose.cross = 1;
+      this.pose.smile = Math.max(this.pose.smile, 0.4);
+      this.idle = 0;
+    }
   }
 
   /** Relax every channel a behaviour might have pushed back toward rest. */
@@ -253,6 +296,7 @@ export class Frog implements SceneElement {
     p.squashY = damp(p.squashY, 1, 0.002, dt);
     p.bounce = damp(p.bounce, 0, 0.001, dt);
     if (!this.asleep) p.lid = damp(p.lid, 0, 0.002, dt);
+    p.cross = damp(p.cross, 0, 0.004, dt);
     p.blink = 0; // reapplied from the blink clock after behaviours run
     p.tongue = 0; // only the catch sequence extends it (written after relax)
   }
@@ -287,6 +331,7 @@ export class Frog implements SceneElement {
   private end(): void {
     this.behaviour = null;
     this.overrideGaze = false;
+    this.croakBig = false;
     this.nextIn = this.rng.range(2.4, 5.5);
   }
 
@@ -402,11 +447,13 @@ export class Frog implements SceneElement {
         break;
 
       case "croak": {
-        // Two throat pulses with a matching mouth flap and a small hop.
-        const pulse = 0.55 * hump(clamp01(k / 0.5)) + 0.55 * hump(clamp01((k - 0.4) / 0.6));
-        p.throat = 0.25 + 0.75 * Math.min(1, pulse);
-        p.mouth = 0.18 * Math.min(1, pulse);
-        p.bounce = this.bw * 0.12 * Math.min(1, pulse);
+        // Two throat pulses with a matching mouth flap and a small hop; a "big"
+        // croak (double-tap) puffs harder and hops higher.
+        const pulse = Math.min(1, 0.55 * hump(clamp01(k / 0.5)) + 0.55 * hump(clamp01((k - 0.4) / 0.6)));
+        const big = this.croakBig;
+        p.throat = Math.min(1, (0.25 + 0.75 * pulse) * (big ? 1.35 : 1));
+        p.mouth = 0.18 * pulse * (big ? 1.5 : 1);
+        p.bounce = this.bw * (big ? 0.2 : 0.12) * pulse;
         p.smile = 0.5;
         break;
       }
@@ -515,5 +562,28 @@ export class Frog implements SceneElement {
   render(world: World): void {
     const a = this.computeAnchor(world.t);
     drawFrog(world.ctx, a.x, a.y, a.scale, this.pose);
+    if (this.asleep) this.drawZzz(world);
+  }
+
+  /** Little "z"s drifting up from the head while it naps. */
+  private drawZzz(world: World): void {
+    const { ctx, t } = world;
+    const hx = this.ax + this.bw * 0.7;
+    const hy = this.ay - this.bw * 1.4;
+    for (let i = 0; i < 2; i++) {
+      const cyc = (t * 0.45 + i * 0.5) % 1; // 0→1 rising
+      const a = cyc < 0.15 ? cyc / 0.15 : 1 - (cyc - 0.15) / 0.85;
+      if (a <= 0.02) continue;
+      const zx = Math.round(hx + cyc * this.bw * 0.5 + Math.sin(cyc * 6) * 1.2);
+      const zy = Math.round(hy - cyc * this.bw * 1.7);
+      this.zGlyph(ctx, zx, zy, i === 0 ? 2 : 1, withAlpha(C.frogEyeHi, clamp01(a) * 0.85));
+    }
+  }
+
+  private zGlyph(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, color: string): void {
+    const cell = (cx: number, cy: number): void => fillRect(ctx, x + cx * s, y + cy * s, s, s, color);
+    cell(0, 0); cell(1, 0); cell(2, 0); cell(3, 0); // top bar
+    cell(2, 1); cell(1, 2); // diagonal
+    cell(0, 3); cell(1, 3); cell(2, 3); cell(3, 3); // bottom bar
   }
 }

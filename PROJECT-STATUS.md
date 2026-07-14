@@ -13,6 +13,17 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
+**Phase 5 — Progression, hidden interactions & warmth — ✅ complete (audio
+pending).** The pond now rewards attention. A golden `Warmth` wash grows with
+`lushness` (the colour-richness half of progression, alongside the fireflies).
+Hidden interactions: double-click the frog → a big croak; click the lantern → it
+flares; tap the water 3× quickly → a fish jumps and splashes; leave it idle → it
+dozes with floating "z"s; linger ~5 min → a shooting star; and every so often a
+butterfly flutters in, perches on the frog's snout, and crosses its eyes. Code:
+`src/world/critters/` (`Fish`, `Butterfly`), `src/world/fx/Warmth.ts`, plus new
+frog hooks (`bigCroak`, `crossEye`, `headPoint`, nap Zzz) and a shooting star in
+`Stars`. **Still to do: procedural audio ambience + a final polish pass.**
+
 **Phase 4 — Water, particles, lighting & ambience — ✅ complete.** Catches now
 feel alive: a warm sparkle puff where the tongue snaps a bug, a heart that floats
 up on the gulp, and a ripple under the pad. Fireflies drift over the pond as soft

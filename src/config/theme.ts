@@ -102,6 +102,15 @@ export const C = {
   bugLoopLit: "#b3cdf2",
   bugGlow: "#cfe8ff",
 
+  // ── Friendly visitors (fish jump, butterfly) ─────────────────────────
+  fish: "#e9ddc4",
+  fishShade: "#b9a988",
+  fishSpot: "#e08a5a",
+  butterflyA: "#e7a6d0",
+  butterflyB: "#b7a6e7",
+  butterflyBody: "#2a2f38",
+  warmth: "#ffcf8a",
+
   // ── Light, particles, cursor ──────────────────────────────────────────
   firefly: "#ffe9a3",
   fireflyCore: "#fffbe0",

@@ -9,6 +9,7 @@ import type { PondLayout } from "../PondLayout";
 import { Sprite } from "../../render/Sprite";
 import { withAlpha } from "../../render/color";
 import { flicker, sway } from "../../anim/oscillate";
+import { damp } from "../../anim/math";
 import { C } from "../../config/theme";
 
 const LANTERN_ROWS = [
@@ -36,6 +37,7 @@ const CY = 6;
 export class Lantern implements SceneElement {
   private readonly sprite: Sprite;
   brightness = 1;
+  private pulse = 0; // fades after a click, flaring the glow
 
   constructor(private readonly layout: PondLayout) {
     this.sprite = Sprite.from(LANTERN_ROWS, {
@@ -47,6 +49,20 @@ export class Lantern implements SceneElement {
     });
   }
 
+  /** A click: flare the flame, then let it settle back. */
+  brighten(): void {
+    this.pulse = 1;
+  }
+
+  /** Is a point (in this layer's space) on the lantern bulb? */
+  hitTest(x: number, y: number): boolean {
+    return Math.hypot(x - this.layout.lantern.x, y - this.layout.lantern.y) <= 10;
+  }
+
+  update(world: World): void {
+    this.pulse = damp(this.pulse, 0, 0.04, world.dt);
+  }
+
   render(world: World): void {
     const { ctx, t } = world;
     const ax = this.layout.lantern.x;
@@ -54,7 +70,7 @@ export class Lantern implements SceneElement {
 
     const swing = sway(t, 5.2, 1.8, 3.1);
     const bx = ax + swing;
-    const flick = flicker(t, 1.3, 0.78) * this.brightness;
+    const flick = flicker(t, 1.3, 0.78) * (this.brightness + this.pulse * 0.9);
 
     // String up to the (off-screen) branch, leaning with the swing.
     ctx.strokeStyle = C.lanternString;

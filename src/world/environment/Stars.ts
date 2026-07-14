@@ -20,14 +20,53 @@ interface Star {
   bright: boolean;
 }
 
+interface Shoot {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  age: number;
+  life: number;
+}
+
 export class Stars implements SceneElement {
   private stars: Star[] = [];
+  private shoot: Shoot | null = null;
+  private nextShootAt = 300; // reward for lingering: first streak after ~5 min
 
   constructor(
     private readonly layout: PondLayout,
     private readonly rng: Random
   ) {
     this.build();
+  }
+
+  private launchShoot(): void {
+    const { w, waterlineY } = this.layout;
+    const fromLeft = this.rng.chance(0.5);
+    const speed = this.rng.range(180, 260);
+    this.shoot = {
+      x: fromLeft ? this.rng.range(0, w * 0.3) : this.rng.range(w * 0.7, w),
+      y: this.rng.range(waterlineY * 0.05, waterlineY * 0.4),
+      vx: (fromLeft ? 1 : -1) * speed,
+      vy: this.rng.range(40, 90),
+      age: 0,
+      life: this.rng.range(0.7, 1.1),
+    };
+  }
+
+  update(world: World): void {
+    if (!this.shoot && world.t >= this.nextShootAt) {
+      this.launchShoot();
+      this.nextShootAt = world.t + this.rng.range(60, 150); // then now and then
+    }
+    if (this.shoot) {
+      const s = this.shoot;
+      s.age += world.dt;
+      s.x += s.vx * world.dt;
+      s.y += s.vy * world.dt;
+      if (s.age >= s.life) this.shoot = null;
+    }
   }
 
   private build(): void {
@@ -69,6 +108,26 @@ export class Stars implements SceneElement {
         px(ctx, x, y - 1, arm);
         px(ctx, x, y + 1, arm);
       }
+    }
+
+    // A shooting star: a bright head trailing a fading tail.
+    if (this.shoot) {
+      const s = this.shoot;
+      const fade = 1 - s.age / s.life;
+      const ul = Math.hypot(s.vx, s.vy) || 1;
+      const nx = s.vx / ul;
+      const ny = s.vy / ul;
+      for (let i = 1; i < 11; i++) {
+        const d = i * 2.2;
+        const a = fade * (1 - i / 11) * 0.85;
+        px(ctx, Math.round(s.x - nx * d), Math.round(s.y - ny * d), withAlpha(C.star, a));
+      }
+      const hx = Math.round(s.x);
+      const hy = Math.round(s.y);
+      px(ctx, hx, hy, withAlpha(C.starBright, fade));
+      px(ctx, hx - 1, hy, withAlpha(C.starBright, fade * 0.5));
+      px(ctx, hx + 1, hy, withAlpha(C.starBright, fade * 0.5));
+      px(ctx, hx, hy - 1, withAlpha(C.starBright, fade * 0.5));
     }
   }
 }

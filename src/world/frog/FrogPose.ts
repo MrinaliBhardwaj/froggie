@@ -39,6 +39,8 @@ export interface FrogPose {
   /** Tongue tip target, in the same space as the frog's draw origin. */
   tongueX: number;
   tongueY: number;
+  /** Cross-eyed convergence, 0 normal → 1 fully crossed (a butterfly landed). */
+  cross: number;
 }
 
 export const restPose = (): FrogPose => ({
@@ -58,6 +60,7 @@ export const restPose = (): FrogPose => ({
   tongue: 0,
   tongueX: 0,
   tongueY: 0,
+  cross: 0,
 });
 
 // Pre-mixed tints so the hot path never parses hex.
@@ -248,8 +251,10 @@ export function drawFrog(
     fillEllipse(ctx, ex - eyeR * 0.2, eyeY - eyeR * 0.28, eyeR * 0.66, eyeR * 0.56, C.frogBodyLit);
     fillEllipse(ctx, ex, eyeY, eyeR, eyeR, EYE_BASE);
 
-    const ppx = ex + p.eyeX * eyeR * 0.42;
-    const ppy = eyeY + p.eyeY * eyeR * 0.42;
+    // Cross-eyed converges each pupil toward the nose (and a touch down).
+    const conv = -side * p.cross * eyeR * 0.5;
+    const ppx = ex + p.eyeX * eyeR * 0.42 + conv;
+    const ppy = eyeY + p.eyeY * eyeR * 0.42 + p.cross * eyeR * 0.2;
     const pr = eyeR * 0.6;
     fillEllipse(ctx, ppx, ppy, pr, pr * 1.05, C.frogEye);
     fillRect(ctx, ppx - pr * 0.5, ppy - pr * 0.55, Math.max(1, eyeR * 0.3), Math.max(1, eyeR * 0.3), C.frogEyeHi);
