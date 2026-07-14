@@ -34,6 +34,11 @@ export interface FrogPose {
   armWave: number;
   /** Body lift in virtual pixels (croak hop / stretch), + = up. */
   bounce: number;
+  /** Tongue extension toward the target, 0 in-mouth → 1 at the target. */
+  tongue: number;
+  /** Tongue tip target, in the same space as the frog's draw origin. */
+  tongueX: number;
+  tongueY: number;
 }
 
 export const restPose = (): FrogPose => ({
@@ -50,6 +55,9 @@ export const restPose = (): FrogPose => ({
   armR: 0,
   armWave: 0,
   bounce: 0,
+  tongue: 0,
+  tongueX: 0,
+  tongueY: 0,
 });
 
 // Pre-mixed tints so the hot path never parses hex.
@@ -253,8 +261,20 @@ export function drawFrog(
     }
   }
 
-  // ── Arms / hands last, so a raised hand reads in front of the face ─────
+  // ── Arms / hands, so a raised hand reads in front of the face ─────────
   const geom: ArmGeom = { cx, cy: seatY, bodyCx, bodyCy, bodyW, bodyH, bw, bh };
   drawArm(ctx, -1, p.armL, 0, geom);
   drawArm(ctx, 1, p.armR, p.armWave, geom);
+
+  // ── Tongue last of all — it shoots from the mouth toward a bug ─────────
+  if (p.tongue > 0.01) {
+    const mx = bodyCx;
+    const mtY = my + bodyH * 0.05;
+    const tipX = lerp(mx, p.tongueX, p.tongue);
+    const tipY = lerp(mtY, p.tongueY, p.tongue);
+    capsule(ctx, mx, mtY, tipX, tipY, 2.2, 1.7, C.frogTongue);
+    capsule(ctx, mx, mtY, tipX, tipY, 1.1, 0.7, C.frogTongueLit);
+    disc(ctx, Math.round(tipX), Math.round(tipY), 2.2, C.frogTongue);
+    disc(ctx, Math.round(tipX), Math.round(tipY), 1.1, C.frogTongueLit);
+  }
 }

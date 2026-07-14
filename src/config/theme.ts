@@ -83,6 +83,24 @@ export const C = {
   frogEye: "#232f3a",
   frogEyeHi: "#eaf2ff",
   frogMouth: "#3a4a3f",
+  frogTongue: "#e8879b",
+  frogTongueLit: "#f4a9b8",
+
+  // ── Bugs (the little pests the frog catches) ──────────────────────────
+  bugWing: "#e8f4ff",
+  bugLeg: "#2a2f38",
+  bugMosquito: "#a49cc0",
+  bugDragonfly: "#6fd6c8",
+  bugDragonflyLit: "#a6efe6",
+  bugMergeA: "#e08a8a",
+  bugMergeB: "#86cf86",
+  bugSyntax: "#e6b25f",
+  bugSyntaxDark: "#8a5a2a",
+  bugMoth: "#d9cfb4",
+  bugMothDark: "#a89a78",
+  bugLoop: "#7fa8e6",
+  bugLoopLit: "#b3cdf2",
+  bugGlow: "#cfe8ff",
 
   // ── Light, particles, cursor ──────────────────────────────────────────
   firefly: "#ffe9a3",

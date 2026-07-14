@@ -13,6 +13,17 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
+**Phase 3 — Bugs & catching — ✅ complete.** A calm population (up to 5) of
+programmer-bugs drifts over the pond, each flying its own way: null-pointer
+mosquito (erratic darts), memory-leak dragonfly (long glides), merge-conflict
+beetle (sudden reversals), syntax beetle (steady with error-stutters), 404 moth
+(flutters toward the lantern, blinking in/out), infinite-loop beetle (endless
+circles). Click one → the frog aims, shoots its tongue, drags the bug in on the
+tip, and gulps — bumping `progress.lushness` (which blooms the lotuses) and
+`bugsResolved`. Idle, the frog watches the nearest bug. Code: `src/world/bugs/`
+(`Bug.ts` = entity+movement+art, `Bugs.ts` = swarm/spawner); the frog gained a
+tongue (`FrogPose`) and a catch state machine (`Frog.ts`, aim→shoot→retract→gulp).
+
 **Phase 2 — The frog — ✅ complete.** A hand-drawn pixel frog sits on the hero
 lily pad, riding its bob. It's drawn procedurally from a pose (not sprite frames)
 so it animates continuously: slow breathing + throat, random single/double
@@ -42,16 +53,15 @@ Architecture is modular and documented in `DECISIONS.md`.
 
 ## Next up
 
-**Phase 3 — Bugs & interactions.** Clickable bugs flying/animating around the
-pond, each with its own movement (Null Pointer mosquito, Memory Leak dragonfly,
-Merge Conflict beetle, Syntax Beetle, 404 moth, Infinite Loop beetle). Click a
-bug → the frog tracks it, tongue-snaps, and eats it; the pond's `lushness` ticks
-up. Bugs are `SceneElement`s dropped into the `stage` layer next to the frog. The
-frog already exposes the hooks needed (`poke`, gaze); add an "eat/target" path
-and the after-eat reactions (satisfied blink, lick, little hop).
+**Phase 4 — Water, particles, lighting & ambience.** Make catches and the pond
+feel richer: ripples when the frog's tongue/hop hits the water, a little
+sparkle/heart pop on a catch, drifting fireflies (count driven by `lushness`),
+warmer lantern light, better reflections. Everything should still degrade
+gracefully on weak hardware (transform/opacity-cheap, capped particle counts).
+The frog exposes `mouthPoint()`-style geometry and the Scene owns `Water`, so a
+catch can spawn a ripple/particles without new plumbing.
 
-Then: Phase 4 water/particles/lighting/ambience · Phase 5 progression, hidden
-interactions, polish.
+Then: Phase 5 progression curve, hidden interactions, audio ambience, polish.
 
 ## Handy pointers
 

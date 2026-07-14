@@ -1,11 +1,10 @@
-// The mascot. It rides the hero lily pad, watches the pointer, and idles through
-// a little vocabulary of behaviours — blink, look around, croak, stretch, yawn,
-// scratch, wave — chosen on gentle random timers. Left alone it dozes off; a
-// poke wakes it with a startled croak. All state lives here; drawing is handled
-// by `drawFrog`, so this file is pure behaviour (the frog's "AI system").
-//
-// After-eating reactions wait for bugs (Phase 3); the hooks it exposes
-// (`poke`, `hitTest`) are what later phases and the Scene route interaction to.
+// The mascot. It rides the hero lily pad, watches the pointer (and any nearby
+// bug), and idles through a little vocabulary of behaviours — blink, look around,
+// croak, stretch, yawn, scratch, wave — chosen on gentle random timers. Left
+// alone it dozes off; a poke wakes it with a startled croak. Click a bug and the
+// frog aims, tongue-snaps it out of the air, and gulps it down — nudging the
+// pond's lushness up. All state lives here; drawing is handled by `drawFrog`, so
+// this file is pure behaviour (the frog's "AI system").
 
 import type { SceneElement } from "../../engine/types";
 import type { World } from "../../engine/World";
@@ -13,11 +12,25 @@ import type { PondLayout } from "../PondLayout";
 import type { Random } from "../../engine/Random";
 import type { LilyPads } from "../environment/LilyPads";
 import type { Pad } from "../environment/LilyPads";
+import type { Bugs } from "../bugs/Bugs";
 import { bob, osc01 } from "../../anim/oscillate";
 import { clamp, clamp01, lerp, smoothstep, damp } from "../../anim/math";
 import { linear } from "../../anim/easing";
 import { Tween } from "../../anim/Tween";
 import { restPose, drawFrog, type FrogPose } from "./FrogPose";
+
+/** What the frog needs from anything it can eat. `Bug` matches structurally. */
+export interface Catchable {
+  x: number;
+  y: number;
+  alive: boolean;
+  caught: boolean;
+  targeted: boolean;
+  markCaught(): void;
+}
+
+type CatchPhase = "aim" | "shoot" | "retract" | "gulp";
+const CATCH_DUR: Record<CatchPhase, number> = { aim: 0.16, shoot: 0.13, retract: 0.16, gulp: 0.5 };
 
 type Behaviour = "lookAround" | "croak" | "stretch" | "yawn" | "scratch" | "wave";
 
@@ -78,10 +91,18 @@ export class Frog implements SceneElement {
   private lastPx = 0;
   private lastPy = 0;
 
+  // Catching a bug.
+  private catchBug: Catchable | null = null;
+  private catchPhase: CatchPhase | null = null;
+  private catchT = 0;
+  private catchTX = 0; // contact point captured at tongue impact
+  private catchTY = 0;
+
   constructor(
     private readonly layout: PondLayout,
     private readonly rng: Random,
-    private readonly lily: LilyPads
+    private readonly lily: LilyPads,
+    private readonly bugs: Bugs
   ) {
     this.nextIn = rng.range(1.5, 3);
     this.blinkIn = rng.range(2, 5);
@@ -89,6 +110,10 @@ export class Frog implements SceneElement {
     const { w, h, waterlineY } = layout;
     this.ax = Math.round(w * 0.46);
     this.ay = Math.round(waterlineY + (h - waterlineY) * 0.72);
+  }
+
+  get busy(): boolean {
+    return this.catchPhase !== null;
   }
 
   // ── Interaction hooks (Scene routes pointer events here) ────────────────
@@ -104,11 +129,24 @@ export class Frog implements SceneElement {
 
   /** A tap on the frog: wake, startle, and croak. */
   poke(): void {
+    if (this.catchPhase) return; // don't interrupt a catch
     this.wake();
     this.pose.lid = 0;
     this.pose.blink = 0;
     this.start("croak");
     this.pose.bounce = this.bw * 0.4; // an immediate little jump
+  }
+
+  /** Launch a tongue-catch at a clicked bug (ignored if already busy). */
+  catch(bug: Catchable): void {
+    if (this.catchPhase) return;
+    this.wake();
+    this.behaviour = null;
+    this.overrideGaze = true;
+    bug.targeted = true;
+    this.catchBug = bug;
+    this.catchPhase = "aim";
+    this.catchT = 0;
   }
 
   // ── Simulation ──────────────────────────────────────────────────────────
@@ -146,18 +184,28 @@ export class Frog implements SceneElement {
       this.lookX = clamp(dx / (this.bw * 6), -1, 1);
       this.lookY = clamp(dy / (this.bw * 6), -0.7, 0.7);
     } else {
-      this.lookX = Math.sin(t * 0.4) * 0.15;
-      this.lookY = -0.05 + Math.sin(t * 0.27 + 1) * 0.1;
+      // Watch the nearest bug if one is drifting about, else wander idly.
+      const head = this.ay - this.bw;
+      const bug = this.bugs.nearest(this.ax, head, this.bw * 13);
+      if (bug) {
+        this.lookX = clamp((bug.x - this.ax) / (this.bw * 7), -1, 1);
+        this.lookY = clamp((bug.y - head) / (this.bw * 7), -0.8, 0.5);
+      } else {
+        this.lookX = Math.sin(t * 0.4) * 0.15;
+        this.lookY = -0.05 + Math.sin(t * 0.27 + 1) * 0.1;
+      }
     }
 
-    // Drift to sleep after a long undisturbed spell.
-    if (!this.asleep && !this.behaviour && this.idle > SLEEP_AFTER) {
+    // Drift to sleep after a long undisturbed spell (never mid-catch).
+    if (!this.asleep && !this.behaviour && !this.catchPhase && this.idle > SLEEP_AFTER) {
       this.asleep = true;
     }
 
-    // Run / schedule behaviour.
+    // Catching a bug overrides idle behaviour entirely.
     this.relax(dt);
-    if (this.behaviour) {
+    if (this.catchPhase) {
+      this.updateCatch(dt, world);
+    } else if (this.behaviour) {
       const k = this.clock.update(dt);
       this.apply(this.behaviour, k, t);
       if (this.clock.done) this.end();
@@ -196,6 +244,7 @@ export class Frog implements SceneElement {
     p.bounce = damp(p.bounce, 0, 0.001, dt);
     if (!this.asleep) p.lid = damp(p.lid, 0, 0.002, dt);
     p.blink = 0; // reapplied from the blink clock after behaviours run
+    p.tongue = 0; // only the catch sequence extends it (written after relax)
   }
 
   private pick(): void {
@@ -234,6 +283,99 @@ export class Frog implements SceneElement {
   private wake(): void {
     this.asleep = false;
     this.idle = 0;
+  }
+
+  // ── Catching ─────────────────────────────────────────────────────────────
+
+  /** Mouth position in stage space, matching drawFrog's geometry. */
+  private mouthPoint(): { x: number; y: number } {
+    const p = this.pose;
+    const bodyH = this.bw * 0.8 * p.squashY;
+    const bodyCy = this.ay - bodyH * 0.82 - p.bounce;
+    return { x: this.ax + p.lean * this.bw * 0.12, y: bodyCy + bodyH * 0.25 };
+  }
+
+  private toPhase(next: CatchPhase): void {
+    this.catchPhase = next;
+    this.catchT = 0;
+  }
+
+  /** Aim → shoot the tongue → retract (bug rides the tip) → gulp it down. */
+  private updateCatch(dt: number, world: World): void {
+    const p = this.pose;
+    const bug = this.catchBug;
+    this.catchT += dt;
+
+    // Lock gaze and lean onto the prey (or the last contact point).
+    const locked = this.catchPhase === "retract" || this.catchPhase === "gulp";
+    const aimX = locked || !bug ? this.catchTX : bug.x;
+    const aimY = locked || !bug ? this.catchTY : bug.y;
+    const head = this.ay - this.bw;
+    this.glanceX = clamp((aimX - this.ax) / (this.bw * 6), -1, 1);
+    this.glanceY = clamp((aimY - head) / (this.bw * 6), -1, 0.6);
+    p.lean = clamp((aimX - this.ax) / (this.bw * 4), -1, 1) * 0.32;
+
+    const k = clamp01(this.catchT / CATCH_DUR[this.catchPhase as CatchPhase]);
+    switch (this.catchPhase) {
+      case "aim":
+        p.mouth = smoothstep(0, 1, k) * 0.5;
+        p.tongue = 0;
+        if (k >= 1) this.toPhase("shoot");
+        break;
+
+      case "shoot":
+        p.mouth = 0.62;
+        if (bug) {
+          p.tongueX = bug.x;
+          p.tongueY = bug.y;
+        }
+        p.tongue = k;
+        if (k >= 1) {
+          if (bug) {
+            this.catchTX = bug.x;
+            this.catchTY = bug.y;
+            bug.markCaught();
+          }
+          this.toPhase("retract");
+        }
+        break;
+
+      case "retract": {
+        p.mouth = 0.45;
+        p.tongueX = this.catchTX;
+        p.tongueY = this.catchTY;
+        p.tongue = 1 - k;
+        const m = this.mouthPoint(); // bug rides the shrinking tongue tip
+        if (bug) {
+          bug.x = lerp(m.x, this.catchTX, p.tongue);
+          bug.y = lerp(m.y, this.catchTY, p.tongue);
+        }
+        if (k >= 1) {
+          if (bug) bug.alive = false;
+          this.catchBug = null;
+          world.progress.bugsResolved++;
+          world.progress.lushness = clamp01(world.progress.lushness + 0.035);
+          this.toPhase("gulp");
+        }
+        break;
+      }
+
+      case "gulp": {
+        p.tongue = 0;
+        const swell = Math.sin(Math.PI * k);
+        p.throat = 0.3 + 0.6 * swell; // the bug goes down
+        p.mouth = (1 - smoothstep(0, 0.4, k)) * 0.4;
+        p.smile = 0.6;
+        p.lid = Math.max(p.lid, 0.35 * swell); // a satisfied squint
+        p.bounce = this.bw * 0.06 * swell;
+        if (k >= 1) {
+          this.catchPhase = null;
+          this.overrideGaze = false;
+          this.nextIn = this.rng.range(1.2, 2.6);
+        }
+        break;
+      }
+    }
   }
 
   /** Shape the pose for one behaviour from its linear progress `k`. */

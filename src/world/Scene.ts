@@ -21,6 +21,7 @@ import { Lantern } from "./environment/Lantern";
 import { Foreground } from "./environment/Foreground";
 import { Vignette } from "./environment/Vignette";
 import { Frog } from "./frog/Frog";
+import { Bugs } from "./bugs/Bugs";
 import { Cursor } from "../ui/Cursor";
 
 const WATER_PARALLAX = 0.5;
@@ -34,6 +35,7 @@ export class Scene {
   private readonly layout: PondLayout = makePondLayout();
   private readonly water: Water;
   private readonly frog: Frog;
+  private readonly bugs: Bugs;
 
   constructor(world: World) {
     computePondLayout(this.layout, world.width, world.height);
@@ -54,6 +56,7 @@ export class Scene {
     const water = mk("water", WATER_PARALLAX);
     const props = mk("props", 0.7);
     const stage = mk("stage", 1.0);
+    const bugsLayer = mk("bugs", 1.0);
     const foreground = mk("foreground", 1.7);
     const overlay = mk("overlay", 0);
 
@@ -79,11 +82,12 @@ export class Scene {
 
     props.add(new Lantern(this.layout));
 
-    // The stage: everything resting on the near water. Bugs join this layer in
-    // the next phase.
+    // The stage: everything resting on the near water. Bugs fly just above it in
+    // their own layer; the frog reaches into it to catch them.
     const lily = stage.add(new LilyPads(this.layout, rng, 7));
     stage.add(new Flowers(this.layout, rng, 5));
-    this.frog = stage.add(new Frog(this.layout, rng, lily));
+    this.bugs = bugsLayer.add(new Bugs(this.layout, rng));
+    this.frog = stage.add(new Frog(this.layout, rng, lily, this.bugs));
     stage.add(
       new Reeds(this.layout, rng, {
         band: [0.0, 0.13],
@@ -122,9 +126,17 @@ export class Scene {
   }
 
   update(world: World): void {
-    // Route taps: on the frog → poke it; on the water → send out a ripple.
+    // Route taps: on a bug → the frog catches it; on the frog → poke it; on the
+    // water → send out a ripple.
     for (const c of world.input.takeClicks()) {
-      if (this.frog.hitTest(c.x + world.camera.x, c.y + world.camera.y)) {
+      const sx = c.x + world.camera.x; // stage/bug space (parallax 1.0)
+      const sy = c.y + world.camera.y;
+      const bug = this.bugs.pick(sx, sy);
+      if (bug) {
+        this.frog.catch(bug);
+        continue;
+      }
+      if (this.frog.hitTest(sx, sy)) {
         this.frog.poke();
         continue;
       }

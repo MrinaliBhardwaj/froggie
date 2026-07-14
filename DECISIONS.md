@@ -63,6 +63,30 @@ inherits them. Newest at the bottom.
   single/double blinks, and dozing off after ~24s idle (woken by a poke) — the
   frog is never a static idle loop.
 
+## Bugs & catching (Phase 3)
+
+- **One `Bug` entity, six behaviours — not six classes.** Each kind (mosquito,
+  dragonfly, merge, syntax, moth, loop) is a `switch` in one `Bug` for both
+  movement and pixel art. Cheaper to keep consistent, and the swarm treats them
+  uniformly. `Bugs` just spawns to a cap and reaps the eaten.
+- **Structural `Catchable`, no coupling.** The frog eats anything with
+  `{x,y,alive,caught,targeted,markCaught()}`; `Bug` matches by shape, so `Frog`
+  and `Bug` don't import each other. Fish/other prey later satisfy the same
+  interface for free.
+- **Catch is a 4-phase state machine on the frog** (aim → shoot → retract →
+  gulp). The tongue is a `FrogPose` field drawn by `drawFrog`; the bug rides the
+  shrinking tongue tip on retract, then `alive=false`. Only the frog knows how to
+  eat — the Scene just routes a click to `frog.catch(bug)`.
+- **Clicking is forgiving and always succeeds.** Bugs have a generous hit radius
+  and a faint halo so they read as catchable; a click reliably lands a catch (no
+  aiming skill, no failure) — the tongue tracks the live bug until contact. Fits
+  the no-failure rule.
+- **Bugs are their own layer at parallax 1.0**, just above the frog's `stage`, so
+  tongue/bug coordinates share a space and bugs read as flying in front.
+- **Catching is the progression engine.** Each catch nudges `lushness` (+0.035),
+  which already blooms the lotuses — so the pond visibly flourishes as you play,
+  with no score or timer. Grown further in Phase 5.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is
