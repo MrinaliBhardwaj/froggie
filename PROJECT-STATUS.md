@@ -13,6 +13,16 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
+**Phase 4 — Water, particles, lighting & ambience — ✅ complete.** Catches now
+feel alive: a warm sparkle puff where the tongue snaps a bug, a heart that floats
+up on the gulp, and a ripple under the pad. Fireflies drift over the pond as soft
+additive glows, and *how many are lit scales with `lushness`* — so the air fills
+with light as you play (3 → 16). All budgets are capped (≤90 particles, 16
+fireflies) and everything is cheap alpha/transform work, so it stays smooth on
+weak hardware. Code: `src/world/fx/` (`Particles.ts`, `Fireflies.ts`); the frog
+fires an `Effects` interface the Scene routes to the pool + water (frog stays
+decoupled).
+
 **Phase 3 — Bugs & catching — ✅ complete.** A calm population (up to 5) of
 programmer-bugs drifts over the pond, each flying its own way: null-pointer
 mosquito (erratic darts), memory-leak dragonfly (long glides), merge-conflict
@@ -53,15 +63,17 @@ Architecture is modular and documented in `DECISIONS.md`.
 
 ## Next up
 
-**Phase 4 — Water, particles, lighting & ambience.** Make catches and the pond
-feel richer: ripples when the frog's tongue/hop hits the water, a little
-sparkle/heart pop on a catch, drifting fireflies (count driven by `lushness`),
-warmer lantern light, better reflections. Everything should still degrade
-gracefully on weak hardware (transform/opacity-cheap, capped particle counts).
-The frog exposes `mouthPoint()`-style geometry and the Scene owns `Water`, so a
-catch can spawn a ripple/particles without new plumbing.
-
-Then: Phase 5 progression curve, hidden interactions, audio ambience, polish.
+**Phase 5 — Progression, hidden interactions, audio, polish (final).**
+- **Progression curve.** `lushness` already blooms lotuses + multiplies fireflies;
+  extend it to colour richness / warmth and maybe a gentle bug-variety ramp. Keep
+  it a slow, unpressured climb — no meters shown.
+- **Hidden interactions.** double-click frog → big croak; click lantern → brighten;
+  idle ~2min → nap; stay ~5min → shooting star; butterfly lands on frog →
+  cross-eyed; click water repeatedly → a fish jumps.
+- **Audio ambience only** (no music): water, wind, frogs, crickets, lantern hum,
+  fireflies, splashes, birds — layered, looping, low.
+- **Polish pass:** perf check on weak hardware, palette/vignette warmth with
+  lushness, any last-mile art tweaks.
 
 ## Handy pointers
 

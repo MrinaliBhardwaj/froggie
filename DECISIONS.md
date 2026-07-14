@@ -87,6 +87,21 @@ inherits them. Newest at the bottom.
   which already blooms the lotuses — so the pond visibly flourishes as you play,
   with no score or timer. Grown further in Phase 5.
 
+## Particles, fireflies & lighting (Phase 4)
+
+- **Fixed budgets, not spawn-storms.** The particle pool caps at 90 and fireflies
+  at 16 — a hard ceiling so the effect can never tax weak hardware. Fireflies pool
+  once and only draw the first `activeN`; growth allocates nothing.
+- **Fireflies are the progression's light.** `activeN = lerp(3,16,lushness)`,
+  eased so it fades in smoothly — the pond literally gets brighter as you catch
+  bugs. Drawn additively (`globalCompositeOperation = "lighter"`) as layered warm
+  halos so they glow rather than dot.
+- **The frog stays decoupled from fx.** It calls an `Effects` interface
+  (`sparkle/heart/ripple`); the Scene wires that to `Particles` + `Water`. Same
+  pattern as `Catchable` — the frog knows *what* happened, not *how* it's drawn.
+- **Cheap by construction.** Everything is alpha/transform fades on the pixel grid;
+  no blur, no per-frame allocation in the hot path.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is

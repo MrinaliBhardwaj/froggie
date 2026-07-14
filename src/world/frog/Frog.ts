@@ -29,6 +29,14 @@ export interface Catchable {
   markCaught(): void;
 }
 
+/** Where the frog sends the little flourishes of a catch. The Scene wires this
+ *  to the particle pool and the water so the frog stays decoupled from both. */
+export interface Effects {
+  sparkle(x: number, y: number, count: number): void;
+  heart(x: number, y: number): void;
+  ripple(x: number, y: number, strength: number): void;
+}
+
 type CatchPhase = "aim" | "shoot" | "retract" | "gulp";
 const CATCH_DUR: Record<CatchPhase, number> = { aim: 0.16, shoot: 0.13, retract: 0.16, gulp: 0.5 };
 
@@ -102,7 +110,8 @@ export class Frog implements SceneElement {
     private readonly layout: PondLayout,
     private readonly rng: Random,
     private readonly lily: LilyPads,
-    private readonly bugs: Bugs
+    private readonly bugs: Bugs,
+    private readonly fx: Effects
   ) {
     this.nextIn = rng.range(1.5, 3);
     this.blinkIn = rng.range(2, 5);
@@ -135,6 +144,7 @@ export class Frog implements SceneElement {
     this.pose.blink = 0;
     this.start("croak");
     this.pose.bounce = this.bw * 0.4; // an immediate little jump
+    this.fx.ripple(this.ax, this.ay, 0.4); // a nudge on the water
   }
 
   /** Launch a tongue-catch at a clicked bug (ignored if already busy). */
@@ -335,6 +345,7 @@ export class Frog implements SceneElement {
             this.catchTX = bug.x;
             this.catchTY = bug.y;
             bug.markCaught();
+            this.fx.sparkle(bug.x, bug.y, 6); // a puff where it's snapped
           }
           this.toPhase("retract");
         }
@@ -355,6 +366,10 @@ export class Frog implements SceneElement {
           this.catchBug = null;
           world.progress.bugsResolved++;
           world.progress.lushness = clamp01(world.progress.lushness + 0.035);
+          const mo = this.mouthPoint(); // a heart floats up as it gulps
+          this.fx.heart(mo.x, mo.y - this.bw * 0.6);
+          this.fx.sparkle(mo.x, mo.y, 3);
+          this.fx.ripple(this.ax, this.ay, 0.5);
           this.toPhase("gulp");
         }
         break;

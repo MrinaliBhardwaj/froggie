@@ -20,8 +20,10 @@ import { Flowers } from "./environment/Flowers";
 import { Lantern } from "./environment/Lantern";
 import { Foreground } from "./environment/Foreground";
 import { Vignette } from "./environment/Vignette";
-import { Frog } from "./frog/Frog";
+import { Frog, type Effects } from "./frog/Frog";
 import { Bugs } from "./bugs/Bugs";
+import { Fireflies } from "./fx/Fireflies";
+import { Particles } from "./fx/Particles";
 import { Cursor } from "../ui/Cursor";
 
 const WATER_PARALLAX = 0.5;
@@ -36,6 +38,7 @@ export class Scene {
   private readonly water: Water;
   private readonly frog: Frog;
   private readonly bugs: Bugs;
+  private readonly particles: Particles;
 
   constructor(world: World) {
     computePondLayout(this.layout, world.width, world.height);
@@ -55,8 +58,10 @@ export class Scene {
     const farReeds = mk("farReeds", 0.4);
     const water = mk("water", WATER_PARALLAX);
     const props = mk("props", 0.7);
+    const fireflies = mk("fireflies", 0.85);
     const stage = mk("stage", 1.0);
     const bugsLayer = mk("bugs", 1.0);
+    const fxLayer = mk("fx", 1.0);
     const foreground = mk("foreground", 1.7);
     const overlay = mk("overlay", 0);
 
@@ -82,12 +87,27 @@ export class Scene {
 
     props.add(new Lantern(this.layout));
 
+    // Fireflies drift in the mid-depth, behind the frog; more of them light up as
+    // the pond flourishes.
+    fireflies.add(new Fireflies(this.layout, rng));
+
+    // Catch flourishes (sparkles + hearts) live in front of the frog and bugs.
+    this.particles = fxLayer.add(new Particles(rng));
+
+    // The frog sends its catch flourishes here; the Scene routes them to the
+    // particle pool and the water, so the frog knows nothing about either.
+    const fx: Effects = {
+      sparkle: (x, y, n) => this.particles.sparkle(x, y, n),
+      heart: (x, y) => this.particles.heart(x, y),
+      ripple: (x, y, s) => this.water.spawnRipple(x, y, s),
+    };
+
     // The stage: everything resting on the near water. Bugs fly just above it in
     // their own layer; the frog reaches into it to catch them.
     const lily = stage.add(new LilyPads(this.layout, rng, 7));
     stage.add(new Flowers(this.layout, rng, 5));
     this.bugs = bugsLayer.add(new Bugs(this.layout, rng));
-    this.frog = stage.add(new Frog(this.layout, rng, lily, this.bugs));
+    this.frog = stage.add(new Frog(this.layout, rng, lily, this.bugs, fx));
     stage.add(
       new Reeds(this.layout, rng, {
         band: [0.0, 0.13],
