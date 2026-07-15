@@ -40,10 +40,18 @@ export class Ambience {
   }
 
   toggleMute(): void {
-    this.muted = !this.muted;
+    this.setMuted(!this.muted);
+  }
+
+  setMuted(m: boolean): void {
+    this.muted = m;
     if (this.master && this.ctx) {
       this.master.gain.setTargetAtTime(this.muted ? 0 : 0.9, this.ctx.currentTime, 0.05);
     }
+  }
+
+  get isMuted(): boolean {
+    return this.muted;
   }
 
   /** Create the context + ambient bed (idempotent). Safe to call repeatedly. */

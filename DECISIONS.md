@@ -137,6 +137,26 @@ inherits them. Newest at the bottom.
 - **One shared instance.** `ambience` is a module singleton — the pond has one
   soundscape; no plumbing through Game/World.
 
+## Clarity & life polish (post-launch)
+
+- **The info panel is DOM, not canvas.** Real glassmorphism (backdrop-blur,
+  border, shadow) is a browser strength and the brief wanted a "lightweight
+  desktop widget," so it's an HTML card layered over the canvas — monospace to
+  sit with the pixel art. The `Game` pushes it the live catch count through a
+  per-frame `onTick` hook; the panel owns nothing but its own DOM.
+- **Bug names live on the entity, tooltips in the overlay.** `Bug.name` maps kind
+  → programming-bug; the Scene points one fading `BugTooltip` (screen-space,
+  overlay layer) at whatever bug is hovered or being chased. Tooltip text is drawn
+  into the low-res buffer so the nearest-neighbour upscale keeps it pixel-crisp —
+  no permanent labels.
+- **The frog lives on the pads.** It tracks a current `Pad` and hops toward far
+  bugs (greedy: the grown pad that gets meaningfully closer, re-planned after each
+  landing, capped at 4 hops then it just lashes out — no failure state). The body
+  arcs via `bounce` so the **shadow stays on the water**; the anchor glides
+  horizontally so the shadow travels between pads. Frog scale is fixed from the
+  hero pad (was pad-relative — hopping to a small pad shrank it). Pads got a
+  spring (`press`/`pressV`) for the landing dip, and the frog rides it.
+
 ## Scope guardrails
 
 - Built in the brief's **5 phases**, stopping after each for review. Phase 1 is

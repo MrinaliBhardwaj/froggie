@@ -34,11 +34,70 @@
         z-index: 10;
       }
       #boot.hidden { opacity: 0; pointer-events: none; }
+
+      /* Floating info widget — dark translucent glass, top-left, never over the
+         frog (which sits centre-low). Monospace to sit with the pixel art. */
+      #panel {
+        position: fixed; top: 16px; left: 16px;
+        width: 236px;
+        padding: 13px 15px 12px;
+        background: linear-gradient(160deg, rgba(20,32,46,0.62), rgba(12,20,32,0.5));
+        backdrop-filter: blur(9px) saturate(1.15);
+        -webkit-backdrop-filter: blur(9px) saturate(1.15);
+        border: 1px solid rgba(150, 205, 214, 0.20);
+        border-radius: 13px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.06);
+        color: #d3e3e8;
+        font: 12px/1.5 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        z-index: 8;
+        user-select: none;
+        opacity: 0;
+        transform: translateY(-4px);
+        transition: opacity 700ms ease, transform 700ms ease;
+      }
+      #panel.ready { opacity: 1; transform: none; }
+      #panel .p-title {
+        font-size: 15px; font-weight: 700; letter-spacing: 0.01em;
+        color: #eaf5f2;
+      }
+      #panel .p-sub {
+        margin-top: 2px; font-size: 10px; color: #8fb0b8;
+        letter-spacing: 0.08em; text-transform: uppercase;
+      }
+      #panel .p-desc {
+        margin: 9px 0 10px; font-size: 11px; line-height: 1.55; color: #a9c4cb;
+      }
+      #panel .p-row {
+        display: flex; align-items: center; justify-content: space-between;
+        padding-top: 9px;
+        border-top: 1px solid rgba(150, 205, 214, 0.14);
+      }
+      #panel .p-bugs { font-size: 11px; color: #c7dbe1; }
+      #panel .p-bugs b { color: #ffe9a3; font-weight: 700; }
+      #panel .p-mute {
+        appearance: none; border: 1px solid rgba(150,205,214,0.18);
+        background: rgba(255,255,255,0.04); color: inherit;
+        width: 26px; height: 22px; border-radius: 7px;
+        font-size: 12px; line-height: 1; cursor: pointer;
+        display: grid; place-items: center;
+        transition: background 160ms ease, border-color 160ms ease;
+      }
+      #panel .p-mute:hover { background: rgba(255,255,255,0.10); border-color: rgba(150,205,214,0.34); }
+      #panel .p-mute.muted { opacity: 0.6; }
     </style>
   </head>
   <body>
     <div id="app">
       <canvas id="stage"></canvas>
+    </div>
+    <div id="panel">
+      <div class="p-title">🐸 Lotus Pond</div>
+      <div class="p-sub">Mrinali's Pet Frog</div>
+      <div class="p-desc">Catch coding bugs and help the pond flourish.</div>
+      <div class="p-row">
+        <span class="p-bugs">🐛 Bugs Fixed: <b id="bugCount">0</b></span>
+        <button id="muteBtn" class="p-mute" type="button" aria-label="Toggle sound" title="Sound on / off (m)">🔊</button>
+      </div>
     </div>
     <div id="boot">· lotus pond ·</div>
     <script type="module" src="/src/main.ts"></script>

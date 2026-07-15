@@ -15,7 +15,7 @@ import type { Pad } from "../environment/LilyPads";
 import type { Bugs } from "../bugs/Bugs";
 import { bob, osc01 } from "../../anim/oscillate";
 import { clamp, clamp01, lerp, smoothstep, damp } from "../../anim/math";
-import { linear } from "../../anim/easing";
+import { linear, easeInOutQuad } from "../../anim/easing";
 import { Tween } from "../../anim/Tween";
 import { restPose, drawFrog, type FrogPose } from "./FrogPose";
 import { fillRect } from "../../render/pixels";
@@ -38,10 +38,16 @@ export interface Effects {
   sparkle(x: number, y: number, count: number): void;
   heart(x: number, y: number): void;
   ripple(x: number, y: number, strength: number): void;
+  splash(intensity: number): void;
 }
 
 type CatchPhase = "aim" | "shoot" | "retract" | "gulp";
 const CATCH_DUR: Record<CatchPhase, number> = { aim: 0.16, shoot: 0.13, retract: 0.16, gulp: 0.5 };
+
+// How far the tongue can reach from the current pad; beyond this the frog hops
+// across lily pads to get closer. Also the cap on hops before it just lashes out.
+const TONGUE_REACH = 4.6; // × body half-width
+const MAX_HOPS = 4;
 
 type Behaviour = "lookAround" | "croak" | "stretch" | "yawn" | "scratch" | "wave";
 
@@ -113,6 +119,21 @@ export class Frog implements SceneElement {
   private croakBig = false; // this croak is a double-click "big" croak
   private crossT = 0; // seconds left cross-eyed (a butterfly is perched)
 
+  // Living on the pads: which pad it's on, a constant body size, and the
+  // hop-travel state used to reach far bugs.
+  private pad: Pad | null = null;
+  private frogScale = 0; // fixed from the hero pad, so the frog never resizes
+  private travelBug: Catchable | null = null;
+  private traveling = false;
+  private hopping = false;
+  private hopsDone = 0;
+  private readonly hopClock = new Tween();
+  private hopFromX = 0;
+  private hopFromY = 0;
+  private hopTo: Pad | null = null;
+  private hopH = 0;
+  private landed = false; // one-shot guard for landing effects
+
   constructor(
     private readonly layout: PondLayout,
     private readonly rng: Random,
@@ -129,7 +150,7 @@ export class Frog implements SceneElement {
   }
 
   get busy(): boolean {
-    return this.catchPhase !== null;
+    return this.catchPhase !== null || this.traveling;
   }
 
   // ── Interaction hooks (Scene routes pointer events here) ────────────────
@@ -145,7 +166,7 @@ export class Frog implements SceneElement {
 
   /** A tap on the frog: wake, startle, and croak. */
   poke(): void {
-    if (this.catchPhase) return; // don't interrupt a catch
+    if (this.busy) return; // don't interrupt a catch or a hop
     this.wake();
     this.pose.lid = 0;
     this.pose.blink = 0;
@@ -154,21 +175,40 @@ export class Frog implements SceneElement {
     this.fx.ripple(this.ax, this.ay, 0.4); // a nudge on the water
   }
 
-  /** Launch a tongue-catch at a clicked bug (ignored if already busy). */
+  /** Go after a clicked bug: lash the tongue if it's near, else hop the pads
+   *  toward it first. Ignored if already catching or hopping. */
   catch(bug: Catchable): void {
-    if (this.catchPhase) return;
+    if (this.busy) return;
     this.wake();
     this.behaviour = null;
-    this.overrideGaze = true;
     bug.targeted = true;
+    this.hopsDone = 0;
+    if (this.reachable(bug)) {
+      this.startCatch(bug);
+    } else {
+      this.travelBug = bug;
+      this.traveling = true;
+      this.hopping = false;
+      this.overrideGaze = true;
+    }
+  }
+
+  private reachable(bug: Catchable): boolean {
+    return Math.hypot(bug.x - this.ax, bug.y - this.ay) <= this.bw * TONGUE_REACH;
+  }
+
+  private startCatch(bug: Catchable): void {
+    this.traveling = false;
+    this.travelBug = null;
     this.catchBug = bug;
+    this.overrideGaze = true;
     this.catchPhase = "aim";
     this.catchT = 0;
   }
 
   /** Double-tap: a full-bodied croak with a bigger hop and stronger ripples. */
   bigCroak(): void {
-    if (this.catchPhase) return;
+    if (this.busy) return;
     this.wake();
     this.pose.lid = 0;
     this.croakBig = true;
@@ -241,15 +281,17 @@ export class Frog implements SceneElement {
       }
     }
 
-    // Drift to sleep after a long undisturbed spell (never mid-catch).
-    if (!this.asleep && !this.behaviour && !this.catchPhase && this.idle > SLEEP_AFTER) {
+    // Drift to sleep after a long undisturbed spell (never mid-action).
+    if (!this.asleep && !this.behaviour && !this.catchPhase && !this.traveling && this.idle > SLEEP_AFTER) {
       this.asleep = true;
     }
 
-    // Catching a bug overrides idle behaviour entirely.
+    // Catching / travelling override idle behaviour entirely.
     this.relax(dt);
     if (this.catchPhase) {
       this.updateCatch(dt, world);
+    } else if (this.traveling) {
+      this.updateTravel(dt, world);
     } else if (this.behaviour) {
       const k = this.clock.update(dt);
       this.apply(this.behaviour, k, t);
@@ -538,30 +580,146 @@ export class Frog implements SceneElement {
     }
   }
 
+  // ── Travelling the pond, pad by pad ──────────────────────────────────────
+
+  /** Between hops, decide: reach the bug, give up hopping, or hop closer. */
+  private updateTravel(dt: number, world: World): void {
+    const bug = this.travelBug;
+    if (!bug || !bug.alive) {
+      this.endTravel();
+      return;
+    }
+    // Keep eyes and lean on the target the whole way.
+    const head = this.ay - this.bw;
+    this.glanceX = clamp((bug.x - this.ax) / (this.bw * 6), -1, 1);
+    this.glanceY = clamp((bug.y - head) / (this.bw * 6), -1, 0.6);
+    this.pose.lean = clamp((bug.x - this.ax) / (this.bw * 4), -1, 1) * 0.22;
+
+    if (this.hopping) {
+      this.advanceHop(dt, world);
+      return;
+    }
+    if (this.reachable(bug) || this.hopsDone >= MAX_HOPS) {
+      this.startCatch(bug);
+      return;
+    }
+    const next = this.planHop(bug, world.t);
+    if (!next) {
+      this.startCatch(bug); // no stepping stone gets closer — lash from here
+      return;
+    }
+    this.beginHop(next);
+  }
+
+  /** The grown pad that gets meaningfully closer to the bug (or null). */
+  private planHop(bug: Catchable, t: number): Pad | null {
+    const curD = Math.hypot(bug.x - this.ax, bug.y - this.ay);
+    let best: Pad | null = null;
+    let bestD = curD - 4; // require real progress
+    for (const p of this.lily.pads) {
+      if (p === this.pad || p.grow < 0.6) continue;
+      const pp = this.padPos(p, t);
+      const d = Math.hypot(bug.x - pp.x, bug.y - pp.y);
+      if (d < bestD) {
+        bestD = d;
+        best = p;
+      }
+    }
+    return best;
+  }
+
+  private beginHop(pad: Pad): void {
+    this.hopping = true;
+    this.landed = false;
+    this.hopFromX = this.ax;
+    this.hopFromY = this.ay;
+    this.hopTo = pad;
+    this.hopH = this.bw * 1.5; // arc height
+    this.hopClock.start(0.6, linear);
+  }
+
+  /** Crouch → spring → arc → land squash, moving pad-to-pad. The body arcs via
+   *  `bounce` (shadow stays on the water); the anchor glides horizontally. */
+  private advanceHop(dt: number, world: World): void {
+    const k = this.hopClock.update(dt);
+    const p = this.pose;
+    const to = this.hopTo ? this.padPos(this.hopTo, world.t) : { x: this.hopFromX, y: this.hopFromY };
+
+    const e = easeInOutQuad(clamp01((k - 0.15) / 0.7));
+    this.ax = Math.round(lerp(this.hopFromX, to.x, e));
+    this.ay = Math.round(lerp(this.hopFromY, to.y, e));
+
+    if (k < 0.15) {
+      p.squashY = lerp(1, 0.72, smoothstep(0, 1, k / 0.15)); // crouch
+      p.bounce = 0;
+    } else if (k < 0.82) {
+      const u = (k - 0.15) / 0.67; // flight: stretch + parabolic arc
+      p.squashY = 1.14;
+      p.bounce = Math.sin(Math.PI * u) * this.hopH;
+    } else {
+      const u = (k - 0.82) / 0.18; // land squash, then settle
+      p.squashY = lerp(0.7, 1, smoothstep(0, 1, u));
+      p.bounce = 0;
+      if (!this.landed && u > 0.1 && this.hopTo) {
+        this.landed = true;
+        this.pad = this.hopTo;
+        this.lily.bounce(this.hopTo);
+        this.fx.ripple(to.x, to.y + this.bw * 0.4, 0.6);
+        this.fx.splash(0.4); // a soft plip as it lands
+      }
+    }
+
+    if (this.hopClock.done) {
+      this.hopping = false;
+      this.hopsDone++;
+      if (this.hopTo) this.pad = this.hopTo;
+      this.hopTo = null;
+    }
+  }
+
+  private endTravel(): void {
+    this.traveling = false;
+    this.hopping = false;
+    this.travelBug = null;
+    this.hopTo = null;
+    this.overrideGaze = false;
+  }
+
   // ── Placement ────────────────────────────────────────────────────────────
 
-  /** Sit on the hero pad (riding its bob); fall back to layout if not built. */
+  private resolvePad(): void {
+    if (this.frogScale === 0) {
+      const hp = this.lily.heroPad();
+      if (hp) this.frogScale = clamp(hp.rx * 0.6, 9, 20);
+    }
+    if (!this.pad) this.pad = this.lily.heroPad() ?? null;
+  }
+
+  /** A pad's seat point, riding its bob and any landing dip. */
+  private padPos(pad: Pad, t: number): { x: number; y: number } {
+    const dy = bob(t, pad.period, 1.1, pad.phase);
+    return { x: pad.x, y: Math.round(pad.y + dy + pad.press - pad.ry * 0.2) };
+  }
+
+  /** Where the frog sits — its current pad (mid-hop, the caller overrides). */
   private computeAnchor(t: number): { x: number; y: number; scale: number } {
-    const pad: Pad | undefined = this.lily.heroPad();
-    if (pad) {
-      const dy = bob(t, pad.period, 1.1, pad.phase);
-      return {
-        x: pad.x,
-        y: Math.round(pad.y + dy - pad.ry * 0.2),
-        scale: clamp(pad.rx * 0.6, 9, 20),
-      };
+    this.resolvePad();
+    const scale = this.frogScale || 14;
+    if (this.pad) {
+      const p = this.padPos(this.pad, t);
+      return { x: p.x, y: p.y, scale };
     }
     const { w, h, waterlineY } = this.layout;
     return {
       x: Math.round(w * 0.46),
       y: Math.round(waterlineY + (h - waterlineY) * 0.72),
-      scale: 14,
+      scale,
     };
   }
 
   render(world: World): void {
-    const a = this.computeAnchor(world.t);
-    drawFrog(world.ctx, a.x, a.y, a.scale, this.pose);
+    // Draw at the anchor the update pass resolved (incl. any mid-hop arc).
+    drawFrog(world.ctx, this.ax, this.ay, this.bw, this.pose);
     if (this.asleep) this.drawZzz(world);
   }
 

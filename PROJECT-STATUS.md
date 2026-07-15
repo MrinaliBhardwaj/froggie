@@ -13,6 +13,20 @@ npm run build    # typecheck + production build (currently ~9 KB gzipped JS)
 
 ## Where we are
 
+**Post-launch polish — clarity & life.** Three refinements on top of the finished
+game: (1) a floating **glass info panel** (top-left DOM widget — title, "Mrinali's
+Pet Frog", the one-line how-to, a live "Bugs Fixed" count, and a 🔊 mute button;
+`src/ui/Panel.ts` + markup/CSS in `index.html`, fed the count each frame via a
+`Game` tick hook). (2) **Named bugs** — each kind maps to a programming bug (Null
+Pointer, Memory Leak, Merge Conflict, Syntax Beetle, 404 Bug, Infinite Loop),
+surfaced in a fading **pixel tooltip** on hover or while the frog is chasing it
+(`src/ui/BugTooltip.ts`). (3) **The frog travels the pond**: clicking a distant
+bug makes it hop lily-pad to lily-pad (crouch → arc → land-squash → ripple → the
+pad springs → settle) until close enough to lash its tongue, then it *stays* on
+whatever pad it landed on — it lives on the pads instead of teleporting. Frog
+size is now fixed (no resizing between pads); pads gained a springy landing dip.
+
+
 **Phase 5 — Progression, hidden interactions, warmth & audio — ✅ complete. The
 game is done.** The pond now rewards attention. A golden `Warmth` wash grows with
 `lushness` (the colour-richness half of progression, alongside the fireflies).

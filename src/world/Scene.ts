@@ -27,7 +27,9 @@ import { Particles } from "./fx/Particles";
 import { Warmth } from "./fx/Warmth";
 import { Fish } from "./critters/Fish";
 import { Butterfly } from "./critters/Butterfly";
+import type { Bug } from "./bugs/Bug";
 import { ambience } from "../audio/Ambience";
+import { BugTooltip } from "../ui/BugTooltip";
 import { Cursor } from "../ui/Cursor";
 
 const PROPS_PARALLAX = 0.7;
@@ -48,10 +50,14 @@ export class Scene {
   private readonly particles: Particles;
   private readonly lantern: Lantern;
   private readonly fish: Fish;
+  private readonly tooltip: BugTooltip;
 
   // Rapid-water-tap tracking → a fish jumps.
   private waterTaps = 0;
   private lastTapAt = -Infinity;
+
+  // The bug the frog is currently going after — named in the tooltip until eaten.
+  private targetedBug: Bug | null = null;
 
   constructor(world: World) {
     computePondLayout(this.layout, world.width, world.height);
@@ -120,6 +126,7 @@ export class Scene {
         ambience.eat(); // the soft gulp of a catch
       },
       ripple: (x, y, s) => this.water.spawnRipple(x, y, s),
+      splash: (i) => ambience.splash(i),
     };
 
     // Boot the soundscape on the first user gesture (browsers require it).
@@ -160,6 +167,7 @@ export class Scene {
 
     overlay.add(new Warmth()); // warm wash grows with lushness, under the vignette
     overlay.add(new Vignette());
+    this.tooltip = overlay.add(new BugTooltip());
     overlay.add(new Cursor());
   }
 
@@ -182,6 +190,7 @@ export class Scene {
 
       const bug = this.bugs.pick(sx, sy);
       if (bug) {
+        this.targetedBug = bug;
         this.frog.catch(bug);
         continue;
       }
@@ -217,6 +226,21 @@ export class Scene {
           ambience.splash(0.4);
         }
       }
+    }
+
+    // Name the bug under the cursor — or the one the frog is chasing — in the
+    // pixel tooltip. It fades itself in and out.
+    if (this.targetedBug && (!this.targetedBug.alive || this.targetedBug.caught)) {
+      this.targetedBug = null;
+    }
+    const hoverX = world.input.x + world.camera.x;
+    const hoverY = world.input.y + world.camera.y;
+    let named: Bug | null = world.input.present ? this.bugs.pick(hoverX, hoverY) : null;
+    if (!named) named = this.targetedBug;
+    if (named) {
+      this.tooltip.set(named.name, named.x - world.camera.x, named.y - world.camera.y);
+    } else {
+      this.tooltip.clear();
     }
 
     for (const layer of this.layers) layer.update(world);

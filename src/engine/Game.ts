@@ -19,12 +19,18 @@ export class Game {
   private running = false;
   private booted = false;
   private readonly onFirstFrame?: () => void;
+  private readonly onTick?: (bugsFixed: number) => void;
 
-  constructor(canvas: HTMLCanvasElement, onFirstFrame?: () => void) {
+  constructor(
+    canvas: HTMLCanvasElement,
+    onFirstFrame?: () => void,
+    onTick?: (bugsFixed: number) => void
+  ) {
     this.renderer = new Renderer(canvas, { targetHeight: 232 });
     this.input = new Input(canvas);
     this.world = new World(this.input);
     this.onFirstFrame = onFirstFrame;
+    this.onTick = onTick;
 
     this.syncViewport(this.renderer.width, this.renderer.height);
     this.scene = new Scene(this.world);
@@ -72,6 +78,8 @@ export class Game {
 
     this.renderer.clear(C.skyDeep);
     this.scene.render(world);
+
+    this.onTick?.(world.progress.bugsResolved);
 
     if (!this.booted) {
       this.booted = true;

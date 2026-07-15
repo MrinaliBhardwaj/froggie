@@ -48,6 +48,16 @@ const FLAP: Record<BugKind, number> = {
   loop: 18,
 };
 
+// The programming-bug each critter stands for — shown in the hover tooltip.
+const NAMES: Record<BugKind, string> = {
+  mosquito: "Null Pointer",
+  dragonfly: "Memory Leak",
+  merge: "Merge Conflict",
+  syntax: "Syntax Beetle",
+  moth: "404 Bug",
+  loop: "Infinite Loop",
+};
+
 export class Bug implements SceneElement {
   x: number;
   y: number;
@@ -95,6 +105,11 @@ export class Bug implements SceneElement {
   private bounds(): Bounds {
     const { w, h } = this.layout;
     return { minX: w * 0.06, maxX: w * 0.94, minY: h * 0.32, maxY: h * 0.84 };
+  }
+
+  /** The programming bug this critter represents (for the tooltip). */
+  get name(): string {
+    return NAMES[this.kind];
   }
 
   /** Frog contact: freeze flight; the frog now owns our position. */

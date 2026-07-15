@@ -26,6 +26,9 @@ export interface Pad {
   threshold: number;
   /** Eased 0→1 reveal scale — pops in when its threshold is crossed. */
   grow: number;
+  /** Springy vertical dip (+down) from a frog landing, and its velocity. */
+  press: number;
+  pressV: number;
 }
 
 // Pads present from the start (besides the hero); the rest unfurl as the pond
@@ -50,6 +53,11 @@ export class LilyPads implements SceneElement {
     return this.pads.find((p) => p.hero);
   }
 
+  /** A frog just landed here — give the pad a springy little dip. */
+  bounce(pad: Pad): void {
+    pad.pressV += 44;
+  }
+
   private build(lushness: number): void {
     const { w, h, waterlineY } = this.layout;
     const waterH = h - waterlineY;
@@ -67,6 +75,8 @@ export class LilyPads implements SceneElement {
       hero: true,
       threshold: 0,
       grow: 1,
+      press: 0,
+      pressV: 0,
     });
 
     const ramp = Math.max(1, this.count - STARTER_PADS - 1);
@@ -87,6 +97,8 @@ export class LilyPads implements SceneElement {
         hero: false,
         threshold,
         grow: lushness >= threshold ? 1 : 0,
+        press: 0,
+        pressV: 0,
       });
     }
     for (const p of this.pads) p.ry = Math.max(2, Math.round(p.rx * 0.42));
@@ -106,9 +118,12 @@ export class LilyPads implements SceneElement {
 
       const rx = Math.max(1, Math.round(p.rx * p.grow));
       const ry = Math.max(1, Math.round(p.ry * p.grow));
+      // Spring any landing dip back to rest (a little wobble under the frog).
+      p.pressV += (-p.press * 420 - p.pressV * 9) * dt;
+      p.press += p.pressV * dt;
       const dy = bob(t, p.period, 1.1, p.phase);
       const cx = p.x;
-      const cy = Math.round(p.y + dy);
+      const cy = Math.round(p.y + dy + p.press);
 
       // Wake: a faint disturbance ring where the pad meets the water.
       const wakeA = 0.1 + 0.06 * Math.sin((t / p.period) * TAU + p.phase * TAU);
