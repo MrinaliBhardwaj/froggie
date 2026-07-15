@@ -32,7 +32,7 @@ export const sway = (
 };
 
 /**
- * Flicker for lantern / firefly light — mostly bright, occasionally dipping,
+ * Flicker for firefly light — mostly bright, occasionally dipping,
  * never fully periodic. Returns [min,1].
  */
 export const flicker = (t: number, seed = 0, min = 0.82): number => {

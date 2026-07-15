@@ -1,5 +1,5 @@
 // Cheap, deterministic value noise. Used for organic motion — wind drifting
-// through reeds, lantern flicker, water shimmer — anything that should feel
+// through reeds, firefly flicker, water shimmer — anything that should feel
 // natural rather than mechanically periodic. No allocations in the hot path.
 
 const hash = (n: number): number => {

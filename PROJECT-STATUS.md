@@ -30,13 +30,13 @@ size is now fixed (no resizing between pads); pads gained a springy landing dip.
 **Phase 5 — Progression, hidden interactions, warmth & audio — ✅ complete. The
 game is done.** The pond now rewards attention. A golden `Warmth` wash grows with
 `lushness` (the colour-richness half of progression, alongside the fireflies).
-Hidden interactions: double-click the frog → a big croak; click the lantern → it
-flares; tap the water 3× quickly → a fish jumps and splashes; leave it idle → it
+Hidden interactions: double-click the frog → a big croak; tap the water twice
+quickly → a fish jumps and splashes; leave it idle → it
 dozes with floating "z"s; linger ~5 min → a shooting star; and every so often a
 butterfly flutters in, perches on the frog's snout, and crosses its eyes.
 **Audio** is fully synthesised (no assets): a looping ambient bed — water, night
-wind, crickets, distant frogs, lantern hum — plus event sounds (splash, croak,
-gulp, lantern chime). It boots on the first click; press **m** to mute. Code:
+wind, crickets, distant frogs — plus event sounds (splash, croak,
+gulp). It boots on the first click; press **m** to mute. Code:
 `src/audio/Ambience.ts`, `src/world/critters/`, `src/world/fx/Warmth.ts`, frog
 hooks, and the shooting star in `Stars`. Production build: **~58 KB (20 KB
 gzipped)**.
@@ -55,7 +55,7 @@ decoupled).
 programmer-bugs drifts over the pond, each flying its own way: null-pointer
 mosquito (erratic darts), memory-leak dragonfly (long glides), merge-conflict
 beetle (sudden reversals), syntax beetle (steady with error-stutters), 404 moth
-(flutters toward the lantern, blinking in/out), infinite-loop beetle (endless
+(flutters toward the moonlight, blinking in/out), infinite-loop beetle (endless
 circles). Click one → the frog aims, shoots its tongue, drags the bug in on the
 tip, and gulps — bumping `progress.lushness` (which blooms the lotuses) and
 `bugsResolved`. Idle, the frog watches the nearest bug. Code: `src/world/bugs/`
@@ -79,12 +79,12 @@ A full-window, layered night pond that is already alive when untouched:
 - Low-res canvas engine with nearest-neighbour upscale; fixed-ish game loop,
   clamped delta, pauses when the tab is hidden.
 - 10-layer parallax scene with a gentle drifting/cursor-leaning camera.
-- Environment: dusk sky, twinkling stars, moon (halo + maria + water reflection),
-  hazy layered mountains, bamboo grove, cattail reeds (wind-gusted sway), lily
-  pads (bob + wake), lotus blooms, a swinging paper lantern (flickering glow +
-  reflection), out-of-focus foreground foliage, drifting petals, vignette.
-- Gorgeous water: cached depth gradient, drifting shimmer glints, wobbling
-  moon/lantern reflections, and a ripple pool. **Clicking the water makes ripples.**
+- Environment: dusk sky, twinkling stars, moon (halo + maria + water reflection —
+  the pond's only light source), hazy layered mountains, bamboo grove, cattail
+  reeds (wind-gusted sway), lily pads (bob), lotus blooms, out-of-focus foreground
+  foliage, drifting petals, vignette.
+- Gorgeous water: cached depth gradient, drifting shimmer glints, the wobbling
+  moon reflection, and a ripple pool. **Clicking the water makes ripples.**
 - Soft custom firefly cursor.
 
 Architecture is modular and documented in `DECISIONS.md`.
@@ -104,5 +104,5 @@ optional refinement, at your direction:
 - Add a creature: implement `SceneElement`, drop it into the `stage` layer in
   `src/world/Scene.ts`. Read time/input/rng from the `World` passed in.
 - Animation helpers: `src/anim/` (easing, oscillate, noise).
-- Sprites: author as a char grid + palette via `Sprite.from` (see `Lantern.ts`).
+- Sprites: author as a char grid + palette via `Sprite.from` (`render/Sprite.ts`).
 - Disturb the water from anywhere: `Water.spawnRipple(x, y, strength)`.

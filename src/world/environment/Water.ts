@@ -1,6 +1,6 @@
 // The pond surface. A cached depth gradient for the plane, then everything that
 // makes water feel wet, layered on top each frame: a bright waterline, drifting
-// shimmer glints, wobbling reflections of the moon and lantern, and a pool of
+// shimmer glints, a wobbling reflection of the moon, and a pool of
 // expanding ripples. `spawnRipple` is public so bugs, fish, petals and the
 // cursor can all disturb the surface in later phases.
 
@@ -11,7 +11,7 @@ import type { Random } from "../../engine/Random";
 import { withAlpha } from "../../render/color";
 import { ring } from "../../render/pixels";
 import { snoise1 } from "../../anim/noise";
-import { osc01, flicker } from "../../anim/oscillate";
+import { osc01 } from "../../anim/oscillate";
 import { clamp01 } from "../../anim/math";
 import { C } from "../../config/theme";
 
@@ -109,7 +109,7 @@ export class Water implements SceneElement {
 
   render(world: World): void {
     const ctx = world.ctx;
-    const { w, h, waterlineY, moon, lantern } = this.layout;
+    const { w, h, waterlineY, moon } = this.layout;
     const waterH = h - waterlineY;
 
     // ── Base plane (cached gradient) ───────────────────────────────────
@@ -140,10 +140,8 @@ export class Water implements SceneElement {
       }
     }
 
-    // ── Reflections (drawn dim, before shimmer) ────────────────────────
+    // ── Reflection (drawn dim, before shimmer) ─────────────────────────
     this.reflection(world, moon.x, waterlineY + 1, waterH * 0.62, C.moonPath, 0.5, moon.r * 0.55, moon.r * 0.85, 1);
-    const lf = flicker(world.t, 2.0, 0.7);
-    this.reflection(world, lantern.x, waterlineY + 1, waterH * 0.5, C.lanternPath, 0.5 * lf, 2.5, 3, 1);
 
     // ── Drifting shimmer glints ────────────────────────────────────────
     for (const s of this.streaks) {

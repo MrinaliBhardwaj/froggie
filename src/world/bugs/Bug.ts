@@ -180,8 +180,8 @@ export class Bug implements SceneElement {
         break;
       }
       case "moth": {
-        // Fluttery drift toward the lantern, blinking in and out (404).
-        const toL = Math.sign(this.layout.lantern.x - this.x || 1);
+        // Fluttery drift toward the moonlight, blinking in and out (404).
+        const toL = Math.sign(this.layout.moon.x - this.x || 1);
         this.x += (toL * 16 + Math.sin(t * 5 + this.seed) * 10) * dt;
         this.y += Math.sin(t * 12 + this.seed) * 16 * dt + Math.sin(t * 0.6) * 6 * dt;
         this.wrapX(b);

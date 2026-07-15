@@ -1,10 +1,11 @@
-// A hidden delight: tap the water a few times in quick succession and a fish
-// arcs up out of the pond and flops back with a splash. Purely reactive — the
-// Scene calls `jump()` when it notices repeated water taps. Ripples are pushed
-// back out through a callback so this stays decoupled from the Water.
+// Fish that arc up out of the pond and flop back with a splash. They surface on
+// their own every so often — the pond should feel inhabited — and a couple of
+// quick taps on the water will also coax one up (the Scene calls `jump`). Ripples
+// are pushed back out through a callback so this stays decoupled from the Water.
 
 import type { SceneElement } from "../../engine/types";
 import type { World } from "../../engine/World";
+import type { PondLayout } from "../PondLayout";
 import type { Random } from "../../engine/Random";
 import { fillEllipse, px } from "../../render/pixels";
 import { withAlpha } from "../../render/color";
@@ -26,11 +27,23 @@ const GRAV = 300;
 
 export class Fish implements SceneElement {
   private readonly jumpers: Jumper[] = [];
+  private nextJump: number;
 
   constructor(
+    private readonly layout: PondLayout,
     private readonly rng: Random,
     private readonly ripple: Ripple
-  ) {}
+  ) {
+    this.nextJump = rng.range(2, 6); // first one soon after arriving
+  }
+
+  /** Pick a spot out on the open water and send a fish up. */
+  private ambientJump(): void {
+    const { w, h, waterlineY } = this.layout;
+    const x = this.rng.range(w * 0.12, w * 0.88);
+    const y = this.rng.range(waterlineY + (h - waterlineY) * 0.35, h - 10);
+    this.jump(x, y);
+  }
 
   /** Send a fish arcing out of the water at (x, surfaceY). */
   jump(x: number, surfaceY: number): void {
@@ -49,6 +62,13 @@ export class Fish implements SceneElement {
 
   update(world: World): void {
     const dt = world.dt;
+
+    // Fish surface on their own, on a gentle random timer.
+    if ((this.nextJump -= dt) <= 0) {
+      this.nextJump = this.rng.range(5, 12);
+      this.ambientJump();
+    }
+
     for (let i = this.jumpers.length - 1; i >= 0; i--) {
       const j = this.jumpers[i];
       j.age += dt;

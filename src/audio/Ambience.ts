@@ -1,9 +1,9 @@
 // The pond's soundscape — no music, only ambience, all synthesised at runtime so
 // there are still zero assets and zero dependencies. A continuous bed (water
-// lapping, night wind, crickets, distant frogs, the lantern's faint hum) runs on
-// its own, and a few event sounds (a splash, a croak, the soft gulp of a catch,
-// the lantern's chime) are triggered by the Scene. Everything is quiet and
-// low-passed so it sits under the visuals like real night air.
+// lapping, night wind, crickets, distant frogs) runs on its own, and a few event
+// sounds (a splash, a croak, the soft gulp of a catch) are triggered by the
+// Scene. Everything is quiet and low-passed so it sits under the visuals like
+// real night air.
 //
 // Browsers block audio until a user gesture, so `installUnlock` starts the
 // context on the first click/key/touch. Every call is wrapped so audio can never
@@ -112,16 +112,6 @@ export class Ambience {
     this.lfo(0.03, 180, windBp.frequency);
     wind.start();
 
-    // Lantern hum: a barely-there low sine with a touch of vibrato.
-    const hum = ctx.createOscillator();
-    hum.type = "sine";
-    hum.frequency.value = 72;
-    const humGain = ctx.createGain();
-    humGain.gain.value = 0.018;
-    hum.connect(humGain).connect(master);
-    this.lfo(5, 1.5, hum.frequency);
-    hum.start();
-
     // Living layers on their own gentle timers.
     this.scheduleCrickets();
     this.scheduleFrogs();
@@ -196,29 +186,6 @@ export class Ambience {
       o.connect(g).connect(this.master);
       o.start(t);
       o.stop(t + 0.2);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  /** A soft two-tone bell when the lantern is clicked. */
-  chime(): void {
-    const ctx = this.ctx;
-    if (!ctx || !this.master || this.muted) return;
-    try {
-      const t = ctx.currentTime;
-      for (const [f, d, v] of [[880, 0, 0.06], [1320, 0.02, 0.035]] as const) {
-        const o = ctx.createOscillator();
-        o.type = "sine";
-        o.frequency.value = f;
-        const g = ctx.createGain();
-        g.gain.setValueAtTime(0.0001, t + d);
-        g.gain.exponentialRampToValueAtTime(v, t + d + 0.01);
-        g.gain.exponentialRampToValueAtTime(0.0004, t + d + 0.5);
-        o.connect(g).connect(this.master);
-        o.start(t + d);
-        o.stop(t + d + 0.6);
-      }
     } catch {
       /* ignore */
     }

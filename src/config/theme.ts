@@ -1,5 +1,5 @@
 // The soul of the look: one small, hand-tuned night palette. Ghibli-ish dusk —
-// deep navy and purple, teal water, warm lantern orange, firefly yellow, and
+// deep navy and purple, teal water, moonlit silver, firefly yellow, and
 // the occasional soft pink highlight. Every sprite pulls from these names so
 // the whole pond stays colour-harmonious and easy to re-tune from one file.
 
@@ -41,7 +41,6 @@ export const C = {
   waterHi: "#2f6f79",
   waterHi2: "#54a0a6",
   moonPath: "#b3bfe0",
-  lanternPath: "#e0a04f",
 
   // ── Reeds & cattails ──────────────────────────────────────────────────
   reedDark: "#1e3a2c",
@@ -65,15 +64,7 @@ export const C = {
   lotusWhite: "#ece7f2",
   lotusWhiteShade: "#c8c5dd",
 
-  // ── Lantern ───────────────────────────────────────────────────────────
-  lanternPaper: "#eaa24a",
-  lanternPaperLit: "#f7ca6f",
-  lanternPaperDeep: "#c9793a",
-  lanternFrame: "#33241b",
-  lanternGlow: "#ffce85",
-  lanternString: "#2a2018",
-
-  // ── Frog (defined now for palette harmony; animated in Phase 2) ────────
+  // ── Frog ──────────────────────────────────────────────────────────────
   frogBody: "#7cbf74",
   frogBodyShade: "#5f9d5c",
   frogBodyLit: "#9bd68c",

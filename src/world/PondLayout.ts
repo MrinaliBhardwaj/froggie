@@ -11,8 +11,6 @@ export interface PondLayout {
   /** Where the far scenery meets the sky. */
   horizonY: number;
   moon: { x: number; y: number; r: number };
-  /** The lantern bulb — light source for its glow and water reflection. */
-  lantern: { x: number; y: number };
 }
 
 export const makePondLayout = (): PondLayout => ({
@@ -21,7 +19,6 @@ export const makePondLayout = (): PondLayout => ({
   waterlineY: 1,
   horizonY: 1,
   moon: { x: 0, y: 0, r: 8 },
-  lantern: { x: 0, y: 0 },
 });
 
 /** Recompute layout in place from the current buffer size. */
@@ -38,7 +35,4 @@ export const computePondLayout = (
   out.moon.r = Math.max(7, Math.round(h * 0.05));
   out.moon.x = Math.round(w * 0.73);
   out.moon.y = Math.round(h * 0.22);
-
-  out.lantern.x = Math.round(w * 0.185);
-  out.lantern.y = Math.round(h * 0.205);
 };

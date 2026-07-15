@@ -32,7 +32,7 @@ inherits them. Newest at the bottom.
   (`Sprite.from`) or procedural pixel drawing. No SVG, no emoji, no 3D-illustration
   look.
 - **One limited night palette** in `config/theme.ts`: deep navy → purple → teal,
-  warm lantern orange, firefly yellow, soft pink highlights. Ghibli-ish dusk.
+  moonlit silver, firefly yellow, soft pink highlights. Ghibli-ish dusk.
 - **Parallax diorama, not a flat picture.** Ten depth layers from a pinned sky to
   foreground foliage. A gentle noise-driven camera drift + a subtle lean toward
   the cursor separate the layers so it reads as a lit box (FEZ-ish).
@@ -40,7 +40,7 @@ inherits them. Newest at the bottom.
   sky while still chunky at display size. (Reverted an early hard-banded look; the
   stripes read as an artifact.)
 - **Always alive, never on a timer.** Idle motion everywhere: star twinkle, reed
-  sway (noise-gusted), water shimmer, wobbling moon/lantern reflections, lantern
+  sway (noise-gusted), water shimmer, the wobbling moon reflection, firefly
   flicker, drifting petals, ambient ripples — all on independent, non-repeating
   phases.
 

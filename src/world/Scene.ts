@@ -17,7 +17,6 @@ import { Water } from "./environment/Water";
 import { Reeds } from "./environment/Reeds";
 import { LilyPads } from "./environment/LilyPads";
 import { Flowers } from "./environment/Flowers";
-import { Lantern } from "./environment/Lantern";
 import { Foreground } from "./environment/Foreground";
 import { Vignette } from "./environment/Vignette";
 import { Frog, type Effects } from "./frog/Frog";
@@ -32,7 +31,6 @@ import { ambience } from "../audio/Ambience";
 import { BugTooltip } from "../ui/BugTooltip";
 import { Cursor } from "../ui/Cursor";
 
-const PROPS_PARALLAX = 0.7;
 const DOUBLE_CLICK_MS = 320;
 
 const WATER_PARALLAX = 0.5;
@@ -48,7 +46,6 @@ export class Scene {
   private readonly frog: Frog;
   private readonly bugs: Bugs;
   private readonly particles: Particles;
-  private readonly lantern: Lantern;
   private readonly fish: Fish;
   private readonly tooltip: BugTooltip;
 
@@ -76,7 +73,6 @@ export class Scene {
     const grove = mk("grove", 0.22);
     const farReeds = mk("farReeds", 0.4);
     const water = mk("water", WATER_PARALLAX);
-    const props = mk("props", 0.7);
     const fireflies = mk("fireflies", 0.85);
     const stage = mk("stage", 1.0);
     const bugsLayer = mk("bugs", 1.0);
@@ -105,14 +101,18 @@ export class Scene {
 
     this.water = water.add(new Water(this.layout, rng));
 
-    this.lantern = props.add(new Lantern(this.layout));
-
     // Fireflies drift in the mid-depth, behind the frog; more of them light up as
     // the pond flourishes.
     fireflies.add(new Fireflies(this.layout, rng));
 
-    // A fish that jumps when the water is tapped repeatedly (splashes ripple back).
-    this.fish = critters.add(new Fish(rng, (x, y, s) => this.water.spawnRipple(x, y, s)));
+    // Fish surface on their own now and then, and whenever the water is tapped
+    // repeatedly. Each splash ripples the water and is heard.
+    this.fish = critters.add(
+      new Fish(this.layout, rng, (x, y, s) => {
+        this.water.spawnRipple(x, y, s);
+        ambience.splash(Math.min(1, s));
+      })
+    );
 
     // Catch flourishes (sparkles + hearts) live in front of the frog and bugs.
     this.particles = fxLayer.add(new Particles(rng));
@@ -183,7 +183,7 @@ export class Scene {
 
   update(world: World): void {
     // Route taps, most specific first: bug → catch, frog → poke (double-tap →
-    // big croak), lantern → brighten, water → ripple (repeated taps → fish jump).
+    // big croak), water → ripple (repeated taps → fish jump).
     for (const c of world.input.takeClicks()) {
       const sx = c.x + world.camera.x; // stage/bug space (parallax 1.0)
       const sy = c.y + world.camera.y;
@@ -204,26 +204,17 @@ export class Scene {
         }
         continue;
       }
-      const px = c.x + world.camera.x * PROPS_PARALLAX;
-      const py = c.y + world.camera.y * PROPS_PARALLAX;
-      if (this.lantern.hitTest(px, py)) {
-        this.lantern.brighten();
-        ambience.chime();
-        continue;
-      }
       const wx = c.x + world.camera.x * WATER_PARALLAX;
       const wy = c.y + world.camera.y * WATER_PARALLAX;
       if (wy > this.layout.waterlineY) {
         this.water.spawnRipple(wx, wy, 0.85);
-        // Repeated quick taps in the water coax a fish up.
+        ambience.splash(0.4);
+        // A couple of quick taps in the water coax a fish up (it splashes itself).
         this.waterTaps = world.t - this.lastTapAt < 1.2 ? this.waterTaps + 1 : 1;
         this.lastTapAt = world.t;
-        if (this.waterTaps >= 3) {
+        if (this.waterTaps >= 2) {
           this.fish.jump(wx, wy);
           this.waterTaps = 0;
-          ambience.splash(1);
-        } else {
-          ambience.splash(0.4);
         }
       }
     }
