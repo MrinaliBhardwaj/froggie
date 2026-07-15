@@ -104,12 +104,14 @@ inherits them. Newest at the bottom.
 
 ## Progression & hidden interactions (Phase 5)
 
-- **Progression is felt, never shown.** No meters or numbers. `lushness` drives
-  everything at once — the **number of lily pads and lotuses** (each has a reveal
-  threshold and eases in when lushness crosses it), how open the lotuses are,
-  firefly count, and a warm colour wash (`Warmth`). The pond literally fills in
-  with pads and blooms as the frog eats more bugs (the core loop): ~5 pads / 2
-  lotuses at the calm start → ~15 pads / 11 lotuses when flourishing.
+- **Progression is felt, never shown.** No meters or numbers. Two signals drive
+  it: the discrete **count of pads and lotuses is tied straight to `bugsResolved`
+  — one new lotus (and one new pad) eases in per bug eaten** (2 lotuses / 5 pads
+  at the calm start → 14 / 17 by ~12 catches), while `lushness` drives the
+  *ambient* richness — how open the lotuses are, firefly count, and the warm
+  colour wash (`Warmth`) — climbing +0.06 per catch. Splitting count (per-catch,
+  immediate and legible) from richness (smooth, continuous) makes each catch land
+  a visible reward.
 - **Hidden interactions reuse existing seams.** The frog already exposed
   `poke`/`catch`; Phase 5 adds `bigCroak`, `crossEye`, `headPoint`, and a `sleeping`
   flag. New critters (`Fish`, `Butterfly`) are plain `SceneElement`s in a `critters`

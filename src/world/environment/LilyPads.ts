@@ -10,7 +10,7 @@ import type { Random } from "../../engine/Random";
 import { fillEllipse, ring } from "../../render/pixels";
 import { withAlpha } from "../../render/color";
 import { bob } from "../../anim/oscillate";
-import { TAU, lerp } from "../../anim/math";
+import { TAU } from "../../anim/math";
 import { C } from "../../config/theme";
 
 export interface Pad {
@@ -22,9 +22,9 @@ export interface Pad {
   phase: number;
   slit: number; // angle of the notch
   hero: boolean;
-  /** Lushness at which this pad appears (0 = always). */
-  threshold: number;
-  /** Eased 0→1 reveal scale — pops in when its threshold is crossed. */
+  /** Catches at which this pad appears (0 = always) — one per bug eaten. */
+  revealAt: number;
+  /** Eased 0→1 reveal scale — pops in when it's revealed. */
   grow: number;
   /** Springy vertical dip (+down) from a frog landing, and its velocity. */
   press: number;
@@ -58,7 +58,7 @@ export class LilyPads implements SceneElement {
     pad.pressV += 44;
   }
 
-  private build(lushness: number): void {
+  private build(bugsFixed: number): void {
     const { w, h, waterlineY } = this.layout;
     const waterH = h - waterlineY;
     this.pads.length = 0;
@@ -73,19 +73,18 @@ export class LilyPads implements SceneElement {
       phase: this.rng.next(),
       slit: this.rng.range(-0.5, 0.5),
       hero: true,
-      threshold: 0,
+      revealAt: 0,
       grow: 1,
       press: 0,
       pressV: 0,
     });
 
-    const ramp = Math.max(1, this.count - STARTER_PADS - 1);
     for (let i = 0; i < this.count; i++) {
       const depth = this.rng.next(); // 0 far → 1 near
       const y = waterlineY + waterH * (0.12 + depth * 0.8);
       const rx = (7 + depth * 17) * this.rng.range(0.8, 1.2);
-      // Starters are here from the off; the rest reveal across rising lushness.
-      const threshold = i < STARTER_PADS ? 0 : lerp(0.36, 1, (i - STARTER_PADS) / ramp);
+      // Starters are here from the off; the rest reveal one per bug eaten.
+      const revealAt = i < STARTER_PADS ? 0 : i - STARTER_PADS + 1;
       this.pads.push({
         x: Math.round(this.rng.range(w * 0.08, w * 0.92)),
         y: Math.round(y),
@@ -95,8 +94,8 @@ export class LilyPads implements SceneElement {
         phase: this.rng.next(),
         slit: this.rng.range(0, TAU),
         hero: false,
-        threshold,
-        grow: lushness >= threshold ? 1 : 0,
+        revealAt,
+        grow: bugsFixed >= revealAt ? 1 : 0,
         press: 0,
         pressV: 0,
       });
@@ -106,13 +105,13 @@ export class LilyPads implements SceneElement {
   }
 
   render(world: World): void {
-    const lush = world.progress.lushness;
-    if (this.pads.length === 0) this.build(lush);
+    const bugsFixed = world.progress.bugsResolved;
+    if (this.pads.length === 0) this.build(bugsFixed);
     const { ctx, t, dt } = world;
 
     for (const p of this.pads) {
-      // Ease the reveal toward its target (1 once lushness clears the threshold).
-      const target = lush >= p.threshold ? 1 : 0;
+      // Ease the reveal toward its target (1 once it has been revealed).
+      const target = bugsFixed >= p.revealAt ? 1 : 0;
       p.grow += (target - p.grow) * Math.min(1, dt * 3.5);
       if (p.grow < 0.02) continue;
 

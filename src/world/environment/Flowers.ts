@@ -21,13 +21,13 @@ interface Bloom {
   phase: number;
   white: boolean;
   rot: number;
-  /** Lushness at which this bloom appears. */
-  threshold: number;
+  /** Catches at which this bloom appears — one new lotus per bug eaten. */
+  revealAt: number;
   /** Eased 0→1 reveal scale. */
   grow: number;
 }
 
-// Lotuses open on the water from the start; the rest bloom as the pond flourishes.
+// Lotuses open on the water from the start; then one more blooms per bug caught.
 const STARTER_BLOOMS = 2;
 
 export class Flowers implements SceneElement {
@@ -43,14 +43,13 @@ export class Flowers implements SceneElement {
     this.blooms = [];
   }
 
-  private build(lushness: number): void {
+  private build(bugsFixed: number): void {
     const { w, h, waterlineY } = this.layout;
     const waterH = h - waterlineY;
     this.blooms = [];
-    const ramp = Math.max(1, this.count - STARTER_BLOOMS - 1);
     for (let i = 0; i < this.count; i++) {
       const depth = this.rng.range(0.3, 1);
-      const threshold = i < STARTER_BLOOMS ? 0 : lerp(0.4, 1, (i - STARTER_BLOOMS) / ramp);
+      const revealAt = i < STARTER_BLOOMS ? 0 : i - STARTER_BLOOMS + 1;
       this.blooms.push({
         x: Math.round(this.rng.range(w * 0.12, w * 0.88)),
         y: Math.round(waterlineY + waterH * (0.3 + depth * 0.6)),
@@ -60,21 +59,21 @@ export class Flowers implements SceneElement {
         phase: this.rng.next(),
         white: this.rng.chance(0.3),
         rot: this.rng.range(0, TAU),
-        threshold,
-        grow: lushness >= threshold ? 1 : 0,
+        revealAt,
+        grow: bugsFixed >= revealAt ? 1 : 0,
       });
     }
     this.blooms.sort((a, b) => a.y - b.y);
   }
 
   render(world: World): void {
-    const lush = world.progress.lushness;
-    if (this.blooms.length === 0) this.build(lush);
+    const bugsFixed = world.progress.bugsResolved;
+    if (this.blooms.length === 0) this.build(bugsFixed);
     const { ctx, t, dt } = world;
-    const open = lerp(0.55, 1, lush);
+    const open = lerp(0.55, 1, world.progress.lushness);
 
     for (const b of this.blooms) {
-      const target = lush >= b.threshold ? 1 : 0;
+      const target = bugsFixed >= b.revealAt ? 1 : 0;
       b.grow += (target - b.grow) * Math.min(1, dt * 3.5);
       if (b.grow < 0.02) continue;
 

@@ -134,9 +134,9 @@ export class Scene {
 
     // The stage: everything resting on the near water. Bugs fly just above it in
     // their own layer; the frog reaches into it to catch them.
-    // Big pools; only a few show at first and the rest unfurl as lushness climbs.
-    const lily = stage.add(new LilyPads(this.layout, rng, 14));
-    stage.add(new Flowers(this.layout, rng, 11));
+    // Big pools; a few show at first and one more unfurls per bug eaten.
+    const lily = stage.add(new LilyPads(this.layout, rng, 16));
+    stage.add(new Flowers(this.layout, rng, 14));
     this.bugs = bugsLayer.add(new Bugs(this.layout, rng));
     this.frog = stage.add(new Frog(this.layout, rng, lily, this.bugs, fx));
 
