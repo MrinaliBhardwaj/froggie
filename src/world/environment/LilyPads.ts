@@ -1,14 +1,13 @@
 // Lily pads drifting on the surface. Each is a flattened disc with a radial slit,
-// a rim, and a top highlight; it bobs gently and pushes a faint wake into the
-// water. One large "hero" pad sits low and centre — that's where the frog will
-// settle in the next phase.
+// a rim and a top highlight, bobbing gently and dipping on a spring when the frog
+// lands. One large "hero" pad sits low and centre — where the frog starts before
+// it goes hopping.
 
 import type { SceneElement } from "../../engine/types";
 import type { World } from "../../engine/World";
 import type { PondLayout } from "../PondLayout";
 import type { Random } from "../../engine/Random";
-import { fillEllipse, ring } from "../../render/pixels";
-import { withAlpha } from "../../render/color";
+import { fillEllipse } from "../../render/pixels";
 import { bob } from "../../anim/oscillate";
 import { TAU } from "../../anim/math";
 import { C } from "../../config/theme";
@@ -125,10 +124,6 @@ export class LilyPads implements SceneElement {
       const dy = bob(t, p.period, 1.1, p.phase);
       const cx = p.x;
       const cy = Math.round(p.y + dy + p.press);
-
-      // Wake: a faint disturbance ring where the pad meets the water.
-      const wakeA = 0.1 + 0.06 * Math.sin((t / p.period) * TAU + p.phase * TAU);
-      ring(ctx, cx, cy + 1, rx + 1, withAlpha(C.waterHi2, Math.max(0, wakeA)));
 
       // Rim (slightly larger dark disc) then the pad body and top light.
       fillEllipse(ctx, cx, cy, rx + 1, ry + 1, C.padRim);
