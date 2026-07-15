@@ -22,7 +22,7 @@ export interface Pad {
   phase: number;
   slit: number; // angle of the notch
   hero: boolean;
-  /** Catches at which this pad appears (0 = always) — one per bug eaten. */
+  /** Catches at which this pad appears (0 = always) — one per two bugs eaten. */
   revealAt: number;
   /** Eased 0→1 reveal scale — pops in when it's revealed. */
   grow: number;
@@ -32,8 +32,10 @@ export interface Pad {
 }
 
 // Pads present from the start (besides the hero); the rest unfurl as the pond
-// flourishes (more bugs caught → more lushness → more pads).
+// flourishes — one more per PADS_PER_BUG bugs eaten. Pads are big, so they grow
+// half as fast as the lotuses; the pond fills in without getting crowded.
 const STARTER_PADS = 4;
+const PADS_PER_BUG = 2;
 
 export class LilyPads implements SceneElement {
   readonly pads: Pad[] = [];
@@ -83,8 +85,8 @@ export class LilyPads implements SceneElement {
       const depth = this.rng.next(); // 0 far → 1 near
       const y = waterlineY + waterH * (0.12 + depth * 0.8);
       const rx = (7 + depth * 17) * this.rng.range(0.8, 1.2);
-      // Starters are here from the off; the rest reveal one per bug eaten.
-      const revealAt = i < STARTER_PADS ? 0 : i - STARTER_PADS + 1;
+      // Starters are here from the off; the rest reveal every other bug.
+      const revealAt = i < STARTER_PADS ? 0 : (i - STARTER_PADS + 1) * PADS_PER_BUG;
       this.pads.push({
         x: Math.round(this.rng.range(w * 0.08, w * 0.92)),
         y: Math.round(y),
